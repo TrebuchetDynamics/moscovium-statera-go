@@ -10,7 +10,7 @@ Do not introduce unsupported claims, popular narratives, or non-standard physics
 
 - Use test-driven development for behavior changes.
 - Keep implementation pure Go and CGO-free.
-- Do not add `gogpu/ui` as a dependency until the repository Go target is compatible with the library's documented requirements.
+- Keep gogpu/ui integration compatible with the repository Go target.
 - Preserve citation links and DOI trails when editing data files.
 - Keep seed data small and auditable.
 
@@ -19,13 +19,18 @@ Do not introduce unsupported claims, popular narratives, or non-standard physics
 Before committing:
 
 ```bash
-go test ./...
+CGO_ENABLED=0 go test ./...
 go run ./cmd/statera
-go run ./cmd/statera-ui
+CGO_ENABLED=0 go test ./cmd/statera-ui
 git diff --check
+```
+
+For a desktop smoke test, run:
+
+```bash
+CGO_ENABLED=0 go run ./cmd/statera-ui
 ```
 
 ## Data Rule
 
 Every isotope record must include source provenance. Missing provenance is a blocking error, not a warning.
-

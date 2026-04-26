@@ -19,17 +19,19 @@ This repository is in Phase 1 bootstrap:
 - high-precision unit conversion exists
 - Crossref DOI metadata retrieval exists
 - seed data includes `288Mc` and `290Mc`
-- UI is a placeholder until gogpu/ui compatibility is resolved
-
-Context7 documentation for `gogpu/ui` currently states Go 1.25+ is required. This repository starts at Go 1.23 per project constraint, so no gogpu/ui dependency is added yet.
+- gogpu/ui application shell exists for education, research, and design modules
 
 ## Quick Start
 
+Prerequisite: Go 1.25 or newer.
+
 ```bash
-go test ./...
+CGO_ENABLED=0 go test ./...
 go run ./cmd/statera
-go run ./cmd/statera-ui
+CGO_ENABLED=0 go run ./cmd/statera-ui
 ```
+
+The gogpu/ui stack is zero-CGO and uses `github.com/go-webgpu/goffi`, which requires `CGO_ENABLED=0` when a local C compiler is installed.
 
 ## Research Boundary
 
@@ -46,7 +48,7 @@ Short version:
 
 ```text
 cmd/statera/             CLI decay-chain smoke path
-cmd/statera-ui/          pure-Go UI placeholder
+cmd/statera-ui/          gogpu/ui application shell
 data/                    seed research records
 docs/                    research charter and literature roadmap
 internal/physics/        decay traversal and unit helpers
@@ -56,4 +58,3 @@ internal/research/       citation and DOI metadata utilities
 ## License
 
 MIT License. See [LICENSE](LICENSE).
-

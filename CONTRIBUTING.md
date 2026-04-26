@@ -24,9 +24,14 @@ Do not add values from informal summaries or secondary websites as simulation de
 ## Local Checks
 
 ```bash
-go test ./...
+CGO_ENABLED=0 go test ./...
 go run ./cmd/statera
-go run ./cmd/statera-ui
+CGO_ENABLED=0 go test ./cmd/statera-ui
 git diff --check
 ```
 
+Run the interactive UI smoke test from a desktop session:
+
+```bash
+CGO_ENABLED=0 go run ./cmd/statera-ui
+```
