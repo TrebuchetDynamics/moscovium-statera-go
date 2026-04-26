@@ -1,0 +1,59 @@
+{
+  "schema": "moscovium-statera-go/research-seed/v1",
+  "notes": [
+    "Seed records include only 288Mc and 290Mc as initial verified Moscovium entries.",
+    "Values are stored with explicit evaluated-data URLs and DOI trails; downstream code must preserve source provenance."
+  ],
+  "records": [
+    {
+      "id": "288Mc",
+      "element": "Moscovium",
+      "symbol": "Mc",
+      "z": 115,
+      "a": 288,
+      "n": 173,
+      "half_life_seconds": 0.17,
+      "q_alpha_mev": 10.75,
+      "q_alpha_uncertainty_mev": 0.05,
+      "alpha_energy_mev": 10.65,
+      "alpha_energy_uncertainty_mev": 0.05,
+      "decay_mode": "alpha",
+      "daughter": "284Nh",
+      "evidence_level": "ENSDF evaluated nuclear data plus peer-reviewed DOI trail",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/288/Mc/adopted.pdf",
+        "https://www.nndc.bnl.gov/nudat3/getdecaydataset.jsp?dsid=288mc+a+decay+%280.17+s%29&nucleus=284NH"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.106.L031301",
+        "10.1016/j.nuclphysa.2003.11.001"
+      ]
+    },
+    {
+      "id": "290Mc",
+      "element": "Moscovium",
+      "symbol": "Mc",
+      "z": 115,
+      "a": 290,
+      "n": 175,
+      "half_life_seconds": 0.65,
+      "half_life_upper_seconds": 1.14,
+      "half_life_lower_seconds": 0.45,
+      "q_alpha_mev": 10.45,
+      "q_alpha_uncertainty_mev": 0.05,
+      "alpha_energy_range_mev": [9.78, 10.31],
+      "decay_mode": "alpha",
+      "daughter": "286Nh",
+      "evidence_level": "ENSDF evaluated nuclear data plus peer-reviewed DOI trail",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/290/Mc/adopted.pdf",
+        "https://www.nndc.bnl.gov/ensnds/290/Mc/a_decay_51_ms.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevLett.104.142502",
+        "10.1103/PhysRevC.99.054306"
+      ]
+    }
+  ]
+}
+
