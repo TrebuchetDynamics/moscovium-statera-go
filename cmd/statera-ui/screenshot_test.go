@@ -7,6 +7,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/ui"
@@ -41,6 +42,38 @@ func TestSaveScreenshotWritesNonBlankPNG(t *testing.T) {
 	}
 	if imageIsSingleColor(img) {
 		t.Fatal("screenshot appears blank")
+	}
+}
+
+func TestDisplayAvailableDetectsWaylandOrX11(t *testing.T) {
+	cases := []struct {
+		name string
+		env  map[string]string
+		want bool
+	}{
+		{name: "none", env: map[string]string{}, want: false},
+		{name: "wayland", env: map[string]string{"WAYLAND_DISPLAY": "wayland-0"}, want: true},
+		{name: "x11", env: map[string]string{"DISPLAY": ":0"}, want: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			getenv := func(key string) string { return tc.env[key] }
+			if got := displayAvailable(getenv); got != tc.want {
+				t.Fatalf("displayAvailable() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestHeadlessScreenshotPathUsesTempDirectory(t *testing.T) {
+	tempDir := t.TempDir()
+	path := headlessScreenshotPath(tempDir)
+	if !strings.HasPrefix(path, tempDir+string(os.PathSeparator)) {
+		t.Fatalf("path = %q, want under %q", path, tempDir)
+	}
+	if filepath.Base(path) != "statera-ui-headless.png" {
+		t.Fatalf("base = %q, want statera-ui-headless.png", filepath.Base(path))
 	}
 }
 

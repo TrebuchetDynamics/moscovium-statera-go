@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/ui"
@@ -34,6 +36,14 @@ func main() {
 		if err := saveScreenshot(*screenshotPath, model, materialTheme); err != nil {
 			log.Fatal(err)
 		}
+		return
+	}
+	if !displayAvailable(os.Getenv) {
+		path := headlessScreenshotPath(os.TempDir())
+		if err := saveScreenshot(path, model, materialTheme); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("no display detected; wrote offscreen screenshot: %s", path)
 		return
 	}
 
@@ -101,6 +111,14 @@ func main() {
 	if err := gpuApp.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func displayAvailable(getenv func(string) string) bool {
+	return getenv("WAYLAND_DISPLAY") != "" || getenv("DISPLAY") != ""
+}
+
+func headlessScreenshotPath(tempDir string) string {
+	return filepath.Join(tempDir, "statera-ui-headless.png")
 }
 
 func saveScreenshot(path string, model ui.AppModel, theme *material3.Theme) error {
