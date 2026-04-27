@@ -35,24 +35,21 @@ Track B context remains excluded from all calculations.
 - Recent superheavy chemistry work reports Mc/Nh gas-solid chromatography on silicon oxide and gold surfaces and ties trends to relativistic valence-orbital effects. This supports an education visualization, not nuclear stability claims.
 - Superheavy fission and shell-structure papers are model-heavy. They are valuable for design exploration, but should be quarantined behind model labels, confidence notes, and no-default warnings.
 
-## Recommended Next Build Slice
+## Active Build Slice: Alpha Systematics Lab
 
-Build the `Alpha Systematics Lab` first.
+Status: implemented in `internal/physics/alpha.go`, `internal/ui/app.go`, and `cmd/statera-ui/main.go` per `docs/superpowers/plans/2026-04-27-alpha-systematics-lab.md`.
 
-Reasoning:
+Implementation receipts:
 
-- It extends the existing Track A validator without importing Track B context.
-- It uses small auditable inputs already present in the seed records: Z, A, half-life, Q_alpha, and daughter.
-- It gives Education a strong interactive explanation: Q_alpha controls alpha-decay half-life estimates through tunneling/systematics.
-- It gives Research a clear DOI-backed queue: Royer 2008, Wang et al. 2015, Hosseini and Hassanabadi 2017, AME2020, and NUBASE2020.
-- It gives Design a constrained model-comparison scenario without implying a stable isotope.
+1. `internal/physics/alpha.go` exposes `RoyerModel()` and `Predict` for the Royer 2008 analytic alpha-decay formula family with parity-class coefficients and a `peer-reviewed-model` evidence-class label.
+2. `internal/physics/alpha_test.go` covers Q_alpha monotonicity, Z monotonicity at fixed Q, parity hindrance, parity classification, and input validation.
+3. `internal/ui/app.go` exposes `AlphaSystematicsRecord` and a peer-reviewed-model lesson; `cmd/statera-ui/main.go` renders an `Alpha Systematics` section.
+4. The model output is labeled `peer-reviewed-model`, never `evaluated`, in both physics types and UI records.
 
-Minimum implementation:
+Open audit follow-ups:
 
-1. Add a `internal/physics/alpha.go` package with one published empirical formula and explicit model metadata.
-2. Add tests that compare monotonic behavior: increasing Q_alpha lowers predicted alpha half-life for fixed Z/A.
-3. Add a UI section that compares evaluated half-life to calculated model half-life for seed isotopes.
-4. Label the result as `peer-reviewed-model`, not `evaluated`.
+- Cross-check Royer 2008 PDF coefficients against the inline values in `internal/physics/alpha.go` and update if drift is found.
+- Add a model-comparison overlay (Royer vs Wang or VSS) once a second analytic formula is intaken.
 
 ## References To Intake
 
