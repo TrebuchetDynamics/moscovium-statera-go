@@ -116,11 +116,14 @@ type AlphaSystematicsRecord struct {
 	QAlphaMeV         float64
 	EvaluatedHalfLife time.Duration
 	PredictedHalfLife time.Duration
-	LogResidual       float64
-	ModelName         string
-	ModelReference    string
-	EvidenceClass     string
-	SourcePath        string
+	// LogResidual is log10(predicted/evaluated): positive means the prediction is longer-lived than the evaluated value.
+	LogResidual    float64
+	ModelName      string
+	ModelReference string
+	EvidenceClass  string
+	SourcePath     string
+	Skipped        bool
+	SkipReason     string
 }
 
 func DefaultSpec() Spec {
@@ -464,35 +467,47 @@ func defaultAlphaSystematicsRecords(catalog physics.Catalog) []AlphaSystematicsR
 	ids := []string{"288Mc", "290Mc"}
 	records := make([]AlphaSystematicsRecord, 0, len(ids))
 	for _, id := range ids {
+		base := AlphaSystematicsRecord{
+			IsotopeID:      id,
+			ModelName:      model.Name,
+			ModelReference: model.Reference,
+			EvidenceClass:  string(model.EvidenceClass),
+			SourcePath:     "internal/physics/alpha.go",
+			LogResidual:    math.NaN(),
+		}
 		isotope, ok := catalog[id]
-		if !ok || isotope.QAlphaMeV <= 0 {
+		if !ok {
+			base.Skipped = true
+			base.SkipReason = "isotope not in catalog"
+			records = append(records, base)
+			continue
+		}
+		if isotope.QAlphaMeV <= 0 {
+			base.Skipped = true
+			base.SkipReason = "no Q_alpha in catalog"
+			records = append(records, base)
 			continue
 		}
 		prediction, err := model.Predict(isotope.Z, isotope.A, isotope.QAlphaMeV)
 		if err != nil {
+			base.Skipped = true
+			base.SkipReason = err.Error()
+			records = append(records, base)
 			continue
 		}
-		residual := math.NaN()
+		base.Z = isotope.Z
+		base.A = isotope.A
+		base.ParityClass = string(prediction.ParityClass)
+		base.QAlphaMeV = isotope.QAlphaMeV
+		base.EvaluatedHalfLife = isotope.HalfLife
+		base.PredictedHalfLife = prediction.HalfLife
 		if isotope.HalfLife > 0 {
 			evaluatedSeconds := isotope.HalfLife.Seconds()
 			if evaluatedSeconds > 0 {
-				residual = prediction.LogHalfLifeSeconds - math.Log10(evaluatedSeconds)
+				base.LogResidual = prediction.LogHalfLifeSeconds - math.Log10(evaluatedSeconds)
 			}
 		}
-		records = append(records, AlphaSystematicsRecord{
-			IsotopeID:         id,
-			Z:                 isotope.Z,
-			A:                 isotope.A,
-			ParityClass:       string(prediction.ParityClass),
-			QAlphaMeV:         isotope.QAlphaMeV,
-			EvaluatedHalfLife: isotope.HalfLife,
-			PredictedHalfLife: prediction.HalfLife,
-			LogResidual:       residual,
-			ModelName:         model.Name,
-			ModelReference:    model.Reference,
-			EvidenceClass:     string(prediction.EvidenceClass),
-			SourcePath:        "internal/physics/alpha.go",
-		})
+		records = append(records, base)
 	}
 	return records
 }

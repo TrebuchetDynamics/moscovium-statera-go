@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -159,6 +160,7 @@ func buildRoot(model ui.AppModel, theme *material3.Theme) widget.Widget {
 		educationSection(model, theme),
 		researchSection(model, theme),
 		designSection(model, theme),
+		alphaSystematicsSection(model, theme),
 		contextSection(model, theme),
 	).Padding(20).Gap(14)
 
@@ -181,6 +183,7 @@ func moduleOverview(model ui.AppModel) widget.Widget {
 		moduleSummary("Education", fmt.Sprintf("%d lessons", len(model.EducationLessons)), "Learn evaluated records and validator boundaries."),
 		moduleSummary("Research", fmt.Sprintf("%d records", len(model.ResearchItems)), "Inspect DOI, URL, queue, and provenance status."),
 		moduleSummary("Design", fmt.Sprintf("%d scenarios", len(model.DesignScenarios)), "Test constrained scenarios against Track A."),
+		moduleSummary("Alpha", fmt.Sprintf("%d isotopes", len(model.AlphaSystematics)), "Compare Royer model predictions to evaluated half-lives."),
 	).Gap(10)
 }
 
@@ -189,7 +192,7 @@ func moduleSummary(name string, metric string, description string) widget.Widget
 		primitives.Text(name).FontSize(13).Bold().Color(widget.Hex(0x183D34)),
 		primitives.Text(metric).FontSize(12).Color(widget.Hex(0x246B45)),
 		primitives.Text(description).FontSize(10).Color(widget.Hex(0x52645C)),
-	).Width(265).Padding(9).Gap(3).Background(widget.Hex(0xFFFFFF)).Rounded(6).BorderStyle(1, widget.Hex(0xD8E1DC))
+	).Width(200).Padding(9).Gap(3).Background(widget.Hex(0xFFFFFF)).Rounded(6).BorderStyle(1, widget.Hex(0xD8E1DC))
 }
 
 func educationSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
@@ -239,6 +242,36 @@ func designSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
 		))
 	}
 	return section("Design", children, theme)
+}
+
+func alphaSystematicsSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
+	children := []widget.Widget{
+		primitives.Text("Royer formula vs evaluated half-lives").FontSize(14).Bold().Color(widget.Hex(0x24483E)),
+		boundary("Predictions are peer-reviewed-model output. They never replace evaluated half-lives."),
+	}
+	for _, record := range model.AlphaSystematics {
+		if record.Skipped {
+			children = append(children, card(
+				primitives.Text(record.IsotopeID).FontSize(13).Bold(),
+				boundary(fmt.Sprintf("skipped: %s", record.SkipReason)),
+				primitives.Text(fmt.Sprintf("%s | %s | %s", record.ModelName, record.ModelReference, record.EvidenceClass)).FontSize(10).Color(widget.Hex(0x31574D)),
+				primitives.Text(record.SourcePath).FontSize(10).Color(widget.Hex(0x5F6F68)),
+			))
+			continue
+		}
+		residual := "n/a"
+		if !math.IsNaN(record.LogResidual) {
+			residual = fmt.Sprintf("%+.2f", record.LogResidual)
+		}
+		children = append(children, card(
+			primitives.Text(record.IsotopeID).FontSize(13).Bold(),
+			primitives.Text(fmt.Sprintf("Z=%d  A=%d  parity=%s  Q_alpha=%.2f MeV", record.Z, record.A, record.ParityClass, record.QAlphaMeV)).FontSize(11),
+			primitives.Text(fmt.Sprintf("evaluated T_1/2 %s | predicted T_1/2 %s | log10 residual %s", record.EvaluatedHalfLife, record.PredictedHalfLife, residual)).FontSize(11).Color(widget.Hex(0x44504B)),
+			primitives.Text(fmt.Sprintf("%s | %s | %s", record.ModelName, record.ModelReference, record.EvidenceClass)).FontSize(10).Color(widget.Hex(0x31574D)),
+			primitives.Text(record.SourcePath).FontSize(10).Color(widget.Hex(0x5F6F68)),
+		))
+	}
+	return section("Alpha Systematics", children, theme)
 }
 
 func contextSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
