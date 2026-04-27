@@ -11,7 +11,7 @@ Reliable reporting attributed to the Bernalillo County Sheriff's Office states t
 
 ## Unsupported Linkages
 
-Public discourse has connected McCasland's disappearance to UAP or Element 115 narratives. This repository does not treat those linkages as verified. They remain `unsupported-linkage` unless supported by reliable sources.
+Additional public-discourse claims about McCasland's disappearance require separate source records before they are represented in this repository. This record validates no linkage beyond the listed sources, and any broader claim remains `unsupported-linkage` unless separately sourced.
 
 ## Sources
 

@@ -16,11 +16,11 @@
 
 ## TL;DR
 
-Reports DGFRS-2 production and decay-chain observations for Moscovium isotopes in the 243Am+48Ca reaction.
+Metadata record for a Physical Review C article on the 243Am+48Ca reaction and Moscovium-related decay-chain source material.
 
 ## Relevance
 
-This is Track A source material for Moscovium isotope production, decay chains, and cross-section context. Values must not be promoted to `citations/facts.md` or `data/research.seed.json` until checked against the paper.
+Candidate Track A source material for Moscovium isotope research context. Values must not be promoted to `citations/facts.md` or `data/research.seed.json` until checked against the paper.
 
 ## Key Facts
 

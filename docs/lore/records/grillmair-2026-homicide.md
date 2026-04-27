@@ -11,7 +11,7 @@ Caltech reported that Carl Grillmair, an astronomer at Caltech's IPAC science an
 
 ## Unsupported Linkages
 
-Claims connecting Grillmair's death to Element 115, UAP, or hidden-technology narratives are not validated by this record. They remain `unsupported-linkage`.
+The listed sources establish death and homicide context only. Broader public-discourse claims require separate source records before they are represented in this repository, and this record validates no linkage beyond its listed sources.
 
 ## Sources
 
