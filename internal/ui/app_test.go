@@ -1,8 +1,10 @@
 package ui
 
 import (
+	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/physics"
 )
@@ -227,4 +229,56 @@ func TestDefaultModelEducationLessonsIncludePeerReviewedBoundary(t *testing.T) {
 		}
 	}
 	t.Fatal("education lessons do not mention the peer-reviewed-model evidence class")
+}
+
+func TestDefaultAlphaSystematicsRecordsSurfacesSkipReasons(t *testing.T) {
+	catalog := physics.Catalog{
+		// 288Mc absent: missing-catalog skip path.
+		// 290Mc present but Q_alpha = 0: missing-Q-alpha skip path.
+		"290Mc": {Symbol: "Mc", Z: 115, A: 290, HalfLife: 650 * time.Millisecond, QAlphaMeV: 0, Daughter: "286Nh", CitationLink: "data/research.seed.json"},
+	}
+
+	records := defaultAlphaSystematicsRecords(catalog)
+	if got, want := len(records), 2; got != want {
+		t.Fatalf("records count = %d, want %d", got, want)
+	}
+
+	byID := map[string]AlphaSystematicsRecord{}
+	for _, record := range records {
+		byID[record.IsotopeID] = record
+	}
+
+	missing, ok := byID["288Mc"]
+	if !ok {
+		t.Fatal("missing-catalog skip record for 288Mc not produced")
+	}
+	if !missing.Skipped {
+		t.Fatal("288Mc record Skipped = false, want true")
+	}
+	if missing.SkipReason == "" {
+		t.Fatal("288Mc SkipReason empty, want a missing-catalog message")
+	}
+	if !math.IsNaN(missing.LogResidual) {
+		t.Fatalf("288Mc LogResidual = %v, want NaN", missing.LogResidual)
+	}
+	if missing.ModelName == "" || missing.ModelReference == "" || missing.EvidenceClass == "" {
+		t.Fatalf("288Mc model identity fields not populated on skip: %+v", missing)
+	}
+	if missing.SourcePath != "internal/physics/alpha.go" {
+		t.Fatalf("288Mc SourcePath = %q, want internal/physics/alpha.go", missing.SourcePath)
+	}
+
+	zeroQ, ok := byID["290Mc"]
+	if !ok {
+		t.Fatal("zero-Q skip record for 290Mc not produced")
+	}
+	if !zeroQ.Skipped {
+		t.Fatal("290Mc record Skipped = false, want true")
+	}
+	if zeroQ.SkipReason == "" {
+		t.Fatal("290Mc SkipReason empty, want a missing-Q-alpha message")
+	}
+	if !math.IsNaN(zeroQ.LogResidual) {
+		t.Fatalf("290Mc LogResidual = %v, want NaN", zeroQ.LogResidual)
+	}
 }

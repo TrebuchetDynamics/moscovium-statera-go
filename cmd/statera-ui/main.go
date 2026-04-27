@@ -253,7 +253,7 @@ func alphaSystematicsSection(model ui.AppModel, theme *material3.Theme) widget.W
 		if record.Skipped {
 			children = append(children, card(
 				primitives.Text(record.IsotopeID).FontSize(13).Bold(),
-				boundary(fmt.Sprintf("skipped: %s", record.SkipReason)),
+				skipNotice(fmt.Sprintf("skipped: %s", record.SkipReason)),
 				primitives.Text(fmt.Sprintf("%s | %s | %s", record.ModelName, record.ModelReference, record.EvidenceClass)).FontSize(10).Color(widget.Hex(0x31574D)),
 				primitives.Text(record.SourcePath).FontSize(10).Color(widget.Hex(0x5F6F68)),
 			))
@@ -318,6 +318,12 @@ func boundary(text string) widget.Widget {
 	return primitives.Box(
 		primitives.Text(text).FontSize(12).Color(widget.Hex(0x5C3B00)),
 	).Padding(10).Background(widget.Hex(0xFFF4D8)).Rounded(6).BorderStyle(1, widget.Hex(0xE7C66A))
+}
+
+func skipNotice(text string) widget.Widget {
+	return primitives.Box(
+		primitives.Text(text).FontSize(11).Color(widget.Hex(0x4A4A4A)),
+	).Padding(8).Background(widget.Hex(0xEFEFEF)).Rounded(6).BorderStyle(1, widget.Hex(0xCFCFCF))
 }
 
 func statusColor(status string) widget.Color {
