@@ -10,6 +10,7 @@ import (
 type EvidenceClass string
 
 const (
+	// EvidenceClassEvaluated is reserved for future Isotope.EvidenceClass labeling once the evaluated-data path is formalized; do not silently delete as unused.
 	EvidenceClassEvaluated         EvidenceClass = "evaluated"
 	EvidenceClassPeerReviewedModel EvidenceClass = "peer-reviewed-model"
 )
@@ -80,11 +81,11 @@ func (m Model) Predict(z, a int, qAlphaMeV float64) (Prediction, error) {
 	if a < z {
 		return Prediction{}, fmt.Errorf("Predict: A=%d must be >= Z=%d", a, z)
 	}
-	if !(qAlphaMeV > 0) {
-		return Prediction{}, fmt.Errorf("Predict: Q_alpha must be positive MeV, got %v", qAlphaMeV)
-	}
 	if math.IsNaN(qAlphaMeV) || math.IsInf(qAlphaMeV, 0) {
 		return Prediction{}, errors.New("Predict: Q_alpha must be finite")
+	}
+	if qAlphaMeV <= 0 {
+		return Prediction{}, fmt.Errorf("Predict: Q_alpha must be positive MeV, got %v", qAlphaMeV)
 	}
 
 	parity := classifyParity(z, a)

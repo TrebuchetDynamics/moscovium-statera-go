@@ -117,6 +117,7 @@ type AlphaSystematicsRecord struct {
 	EvaluatedHalfLife time.Duration
 	PredictedHalfLife time.Duration
 	// LogResidual is log10(predicted/evaluated): positive means the prediction is longer-lived than the evaluated value.
+	// LogResidual is NaN when no evaluated half-life is available for comparison.
 	LogResidual    float64
 	ModelName      string
 	ModelReference string
