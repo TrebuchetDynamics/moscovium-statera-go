@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"math"
 	"time"
 
 	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/physics"
@@ -29,6 +30,7 @@ type AppModel struct {
 	ResearchItems    []ResearchItem
 	DesignScenarios  []DesignScenario
 	ContextRecords   []ContextRecord
+	AlphaSystematics []AlphaSystematicsRecord
 }
 
 type ViewSpec struct {
@@ -106,6 +108,21 @@ type ContextRecord struct {
 	SourcePath    string
 }
 
+type AlphaSystematicsRecord struct {
+	IsotopeID         string
+	Z                 int
+	A                 int
+	ParityClass       string
+	QAlphaMeV         float64
+	EvaluatedHalfLife time.Duration
+	PredictedHalfLife time.Duration
+	LogResidual       float64
+	ModelName         string
+	ModelReference    string
+	EvidenceClass     string
+	SourcePath        string
+}
+
 func DefaultSpec() Spec {
 	return Spec{
 		Title:  "Moscovium Statera Go",
@@ -142,6 +159,7 @@ func DefaultModel() AppModel {
 	contextRecords := defaultContextRecords()
 	claimExamples := defaultClaimExamples(catalog)
 	designScenarios := defaultDesignScenarios(catalog)
+	alphaSystematics := defaultAlphaSystematicsRecords(catalog)
 
 	return AppModel{
 		Spec:  spec,
@@ -160,6 +178,7 @@ func DefaultModel() AppModel {
 		ResearchItems:    researchItems,
 		DesignScenarios:  designScenarios,
 		ContextRecords:   contextRecords,
+		AlphaSystematics: alphaSystematics,
 	}
 }
 
@@ -239,6 +258,12 @@ func defaultEducationLessons() []LessonRecord {
 			Objective:  "Identify mechanism claims that have no standard-model path in the current validator.",
 			Concept:    "The validator can reject unsupported mechanisms without treating context records as physics evidence.",
 			SourcePath: "docs/research-charter.md",
+		},
+		{
+			Title:      "Peer-Reviewed-Model Boundary",
+			Objective:  "Read alpha half-life predictions as model output, not as evaluated data.",
+			Concept:    "Royer-style analytic formulas live in the peer-reviewed-model evidence class. Their output never substitutes for evaluated half-lives and must always carry the model name and DOI.",
+			SourcePath: "internal/physics/alpha.go",
 		},
 	}
 }
@@ -432,4 +457,42 @@ func defaultContextRecords() []ContextRecord {
 			SourcePath:    "docs/lore/records/grillmair-2026-homicide.md",
 		},
 	}
+}
+
+func defaultAlphaSystematicsRecords(catalog physics.Catalog) []AlphaSystematicsRecord {
+	model := physics.RoyerModel()
+	ids := []string{"288Mc", "290Mc"}
+	records := make([]AlphaSystematicsRecord, 0, len(ids))
+	for _, id := range ids {
+		isotope, ok := catalog[id]
+		if !ok || isotope.QAlphaMeV <= 0 {
+			continue
+		}
+		prediction, err := model.Predict(isotope.Z, isotope.A, isotope.QAlphaMeV)
+		if err != nil {
+			continue
+		}
+		residual := math.NaN()
+		if isotope.HalfLife > 0 {
+			evaluatedSeconds := isotope.HalfLife.Seconds()
+			if evaluatedSeconds > 0 {
+				residual = prediction.LogHalfLifeSeconds - math.Log10(evaluatedSeconds)
+			}
+		}
+		records = append(records, AlphaSystematicsRecord{
+			IsotopeID:         id,
+			Z:                 isotope.Z,
+			A:                 isotope.A,
+			ParityClass:       string(prediction.ParityClass),
+			QAlphaMeV:         isotope.QAlphaMeV,
+			EvaluatedHalfLife: isotope.HalfLife,
+			PredictedHalfLife: prediction.HalfLife,
+			LogResidual:       residual,
+			ModelName:         model.Name,
+			ModelReference:    model.Reference,
+			EvidenceClass:     string(prediction.EvidenceClass),
+			SourcePath:        "internal/physics/alpha.go",
+		})
+	}
+	return records
 }
