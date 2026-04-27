@@ -173,3 +173,58 @@ func contains(values []string, want string) bool {
 	}
 	return false
 }
+
+func TestDefaultModelExposesAlphaSystematicsRecords(t *testing.T) {
+	model := DefaultModel()
+
+	if got, want := len(model.AlphaSystematics), 2; got < want {
+		t.Fatalf("AlphaSystematics count = %d, want at least %d", got, want)
+	}
+	for _, record := range model.AlphaSystematics {
+		if record.IsotopeID == "" {
+			t.Fatal("alpha systematics record missing IsotopeID")
+		}
+		if record.ModelName == "" {
+			t.Fatalf("%s missing ModelName", record.IsotopeID)
+		}
+		if record.EvidenceClass != string(physics.EvidenceClassPeerReviewedModel) {
+			t.Fatalf("%s EvidenceClass = %q, want peer-reviewed-model",
+				record.IsotopeID, record.EvidenceClass)
+		}
+		if record.SourcePath == "" {
+			t.Fatalf("%s missing SourcePath", record.IsotopeID)
+		}
+		if record.EvaluatedHalfLife <= 0 {
+			t.Fatalf("%s EvaluatedHalfLife = %v, want positive", record.IsotopeID, record.EvaluatedHalfLife)
+		}
+		if record.PredictedHalfLife <= 0 {
+			t.Fatalf("%s PredictedHalfLife = %v, want positive", record.IsotopeID, record.PredictedHalfLife)
+		}
+	}
+}
+
+func TestDefaultModelAlphaSystematicsCoversSeedIsotopes(t *testing.T) {
+	model := DefaultModel()
+
+	seen := map[string]bool{}
+	for _, record := range model.AlphaSystematics {
+		seen[record.IsotopeID] = true
+	}
+	for _, want := range []string{"288Mc", "290Mc"} {
+		if !seen[want] {
+			t.Fatalf("AlphaSystematics missing %s", want)
+		}
+	}
+}
+
+func TestDefaultModelEducationLessonsIncludePeerReviewedBoundary(t *testing.T) {
+	model := DefaultModel()
+
+	for _, lesson := range model.EducationLessons {
+		if strings.Contains(strings.ToLower(lesson.Title), "peer-reviewed-model") ||
+			strings.Contains(strings.ToLower(lesson.Concept), "peer-reviewed-model") {
+			return
+		}
+	}
+	t.Fatal("education lessons do not mention the peer-reviewed-model evidence class")
+}
