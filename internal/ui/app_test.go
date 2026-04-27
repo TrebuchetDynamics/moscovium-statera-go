@@ -17,7 +17,7 @@ func TestDefaultSpecUsesResearchTitleAndModules(t *testing.T) {
 		t.Fatalf("unexpected window size: %dx%d", spec.Width, spec.Height)
 	}
 
-	wantModules := []string{"Dashboard", "Physics", "Sources", "Context"}
+	wantModules := []string{"Education", "Research", "Design", "Context"}
 	if len(spec.Modules) != len(wantModules) {
 		t.Fatalf("module count = %d, want %d", len(spec.Modules), len(wantModules))
 	}
@@ -39,13 +39,72 @@ func TestDefaultModelExposesMVPViews(t *testing.T) {
 		got = append(got, view.Name)
 	}
 
-	want := []string{"Dashboard", "Physics", "Sources", "Context"}
+	want := []string{"Education", "Research", "Design", "Context"}
 	if len(got) != len(want) {
 		t.Fatalf("view count = %d, want %d (%v)", len(got), len(want), got)
 	}
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("view[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestDefaultModelExposesEducationResearchDesignRecords(t *testing.T) {
+	model := DefaultModel()
+
+	if got, want := len(model.EducationLessons), 4; got < want {
+		t.Fatalf("EducationLessons count = %d, want at least %d", got, want)
+	}
+	if got, want := len(model.ResearchItems), 3; got < want {
+		t.Fatalf("ResearchItems count = %d, want at least %d", got, want)
+	}
+	if got, want := len(model.DesignScenarios), 4; got < want {
+		t.Fatalf("DesignScenarios count = %d, want at least %d", got, want)
+	}
+}
+
+func TestDefaultModelEducationLessonsHaveProvenance(t *testing.T) {
+	model := DefaultModel()
+
+	for _, lesson := range model.EducationLessons {
+		if lesson.Title == "" {
+			t.Fatal("education lesson missing title")
+		}
+		if lesson.Objective == "" {
+			t.Fatalf("%s missing objective", lesson.Title)
+		}
+		if lesson.SourcePath == "" {
+			t.Fatalf("%s missing source path", lesson.Title)
+		}
+	}
+}
+
+func TestDefaultModelResearchItemsHaveTrackAndSource(t *testing.T) {
+	model := DefaultModel()
+
+	for _, item := range model.ResearchItems {
+		if item.Track != "Track A" && item.Track != "Track B" {
+			t.Fatalf("%s Track = %q, want Track A or Track B", item.Key, item.Track)
+		}
+		if item.SourcePath == "" {
+			t.Fatalf("%s missing source path", item.Key)
+		}
+	}
+}
+
+func TestDefaultModelDesignScenariosGateSimulationUse(t *testing.T) {
+	model := DefaultModel()
+
+	for _, scenario := range model.DesignScenarios {
+		if scenario.SimulationUse != "allowed" && scenario.SimulationUse != "blocked" {
+			t.Fatalf("%s SimulationUse = %q, want allowed or blocked", scenario.Name, scenario.SimulationUse)
+		}
+		if scenario.Result.Status != physics.ClaimStatusSupportedByTrackA && scenario.SimulationUse != "blocked" {
+			t.Fatalf("%s status %q SimulationUse = %q, want blocked", scenario.Name, scenario.Result.Status, scenario.SimulationUse)
+		}
+		if scenario.SourcePath == "" {
+			t.Fatalf("%s missing source path", scenario.Name)
 		}
 	}
 }

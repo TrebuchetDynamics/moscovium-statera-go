@@ -155,9 +155,10 @@ func buildRoot(model ui.AppModel, theme *material3.Theme) widget.Widget {
 
 	content := primitives.Box(
 		header(model),
-		dashboardSection(model, theme),
-		physicsSection(model, theme),
-		sourcesSection(model, theme),
+		moduleOverview(model),
+		educationSection(model, theme),
+		researchSection(model, theme),
+		designSection(model, theme),
 		contextSection(model, theme),
 	).Padding(20).Gap(14)
 
@@ -170,54 +171,74 @@ func buildRoot(model ui.AppModel, theme *material3.Theme) widget.Widget {
 func header(model ui.AppModel) widget.Widget {
 	return primitives.Box(
 		primitives.Text(model.Spec.Title).FontSize(26).Bold().Color(widget.Hex(0x183D34)),
-		primitives.Text("Evidence-first workspace for Moscovium isotope data, source records, and quarantined context.").FontSize(14).Color(widget.Hex(0x44504B)),
+		primitives.Text("Education, research, and constrained design for source-backed Moscovium data.").FontSize(14).Color(widget.Hex(0x44504B)),
+		primitives.Text(fmt.Sprintf("Track A isotopes %d | research records %d | context records %d | %s", model.Summary.VerifiedIsotopes, model.Summary.CitationRecords, model.Summary.ContextRecords, strings.Join(model.Summary.DecayChain, " -> "))).FontSize(11).Color(widget.Hex(0x52645C)),
 	).Gap(6)
 }
 
-func dashboardSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
-	return section("Dashboard", []widget.Widget{
-		primitives.HBox(
-			metric("Verified isotopes", fmt.Sprintf("%d", model.Summary.VerifiedIsotopes)),
-			metric("Citation records", fmt.Sprintf("%d", model.Summary.CitationRecords)),
-			metric("Context records", fmt.Sprintf("%d", model.Summary.ContextRecords)),
-		).Gap(10),
-		labelValue("Decay chain", strings.Join(model.Summary.DecayChain, " -> ")),
+func moduleOverview(model ui.AppModel) widget.Widget {
+	return primitives.HBox(
+		moduleSummary("Education", fmt.Sprintf("%d lessons", len(model.EducationLessons)), "Learn evaluated records and validator boundaries."),
+		moduleSummary("Research", fmt.Sprintf("%d records", len(model.ResearchItems)), "Inspect DOI, URL, queue, and provenance status."),
+		moduleSummary("Design", fmt.Sprintf("%d scenarios", len(model.DesignScenarios)), "Test constrained scenarios against Track A."),
+	).Gap(10)
+}
+
+func moduleSummary(name string, metric string, description string) widget.Widget {
+	return primitives.Box(
+		primitives.Text(name).FontSize(13).Bold().Color(widget.Hex(0x183D34)),
+		primitives.Text(metric).FontSize(12).Color(widget.Hex(0x246B45)),
+		primitives.Text(description).FontSize(10).Color(widget.Hex(0x52645C)),
+	).Width(265).Padding(9).Gap(3).Background(widget.Hex(0xFFFFFF)).Rounded(6).BorderStyle(1, widget.Hex(0xD8E1DC))
+}
+
+func educationSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
+	children := []widget.Widget{
+		primitives.Text("Guided learning path").FontSize(14).Bold().Color(widget.Hex(0x24483E)),
 		boundary(model.Summary.BoundaryNotice),
-	}, theme)
-}
-
-func physicsSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
-	children := []widget.Widget{primitives.Text("Track A isotope records").FontSize(14).Bold().Color(widget.Hex(0x24483E))}
-	for _, isotope := range model.Isotopes {
+	}
+	for _, lesson := range model.EducationLessons {
 		children = append(children, card(
-			primitives.Text(fmt.Sprintf("%s  Z=%d  A=%d", isotope.ID, isotope.Z, isotope.A)).FontSize(14).Bold(),
-			primitives.Text(fmt.Sprintf("half-life %s | daughter %s | citations %d", isotope.HalfLife, isotope.Daughter, isotope.CitationCount)).FontSize(12),
-			primitives.Text(isotope.SourcePath).FontSize(11).Color(widget.Hex(0x5F6F68)),
+			primitives.Text(lesson.Title).FontSize(13).Bold(),
+			primitives.Text(lesson.Objective).FontSize(11).Color(widget.Hex(0x44504B)),
+			primitives.Text(lesson.Concept).FontSize(10).Color(widget.Hex(0x5F6F68)),
+			primitives.Text(lesson.SourcePath).FontSize(10).Color(widget.Hex(0x31574D)),
 		))
 	}
-	children = append(children, primitives.Text("Validator examples").FontSize(14).Bold().Color(widget.Hex(0x24483E)))
-	for _, example := range model.ClaimExamples {
-		children = append(children, card(
-			primitives.Text(example.Label).FontSize(13).Bold(),
-			primitives.Text(string(example.Result.Status)).FontSize(12).Color(statusColor(string(example.Result.Status))),
-			primitives.Text(example.Result.Reason).FontSize(11).Color(widget.Hex(0x5F6F68)),
-		))
-	}
-	return section("Physics", children, theme)
+	return section("Education", children, theme)
 }
 
-func sourcesSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
-	children := make([]widget.Widget, 0, len(model.SourceRecords))
-	for _, source := range model.SourceRecords {
+func researchSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
+	children := []widget.Widget{
+		primitives.Text("Source inventory").FontSize(14).Bold().Color(widget.Hex(0x24483E)),
+	}
+	for _, source := range model.ResearchItems {
 		children = append(children, card(
 			primitives.Text(source.Key).FontSize(13).Bold(),
-			primitives.Text(fmt.Sprintf("%s | %s | PDF: %s", source.Track, source.Status, source.PDF)).FontSize(12),
-			primitives.Text(source.Identifier).FontSize(11).Color(widget.Hex(0x31574D)),
-			primitives.Text(source.Relevance).FontSize(11).Color(widget.Hex(0x5F6F68)),
-			primitives.Text(source.SourcePath).FontSize(11).Color(widget.Hex(0x5F6F68)),
+			primitives.Text(fmt.Sprintf("%s | %s | PDF: %s", source.Track, source.Status, source.PDF)).FontSize(11),
+			primitives.Text(source.Identifier).FontSize(10).Color(widget.Hex(0x31574D)),
+			primitives.Text(source.Relevance).FontSize(10).Color(widget.Hex(0x5F6F68)),
+			primitives.Text(source.SourcePath).FontSize(10).Color(widget.Hex(0x5F6F68)),
 		))
 	}
-	return section("Sources", children, theme)
+	return section("Research", children, theme)
+}
+
+func designSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
+	children := []widget.Widget{
+		primitives.Text("Constrained scenarios").FontSize(14).Bold().Color(widget.Hex(0x24483E)),
+	}
+	for _, scenario := range model.DesignScenarios {
+		children = append(children, card(
+			primitives.Text(scenario.Name).FontSize(13).Bold(),
+			primitives.Text(scenario.Goal).FontSize(11).Color(widget.Hex(0x44504B)),
+			primitives.Text(fmt.Sprintf("inputs: %s", strings.Join(scenario.Inputs, ", "))).FontSize(10).Color(widget.Hex(0x5F6F68)),
+			primitives.Text(fmt.Sprintf("%s | simulation use: %s", scenario.Result.Status, scenario.SimulationUse)).FontSize(11).Color(statusColor(string(scenario.Result.Status))),
+			primitives.Text(scenario.Constraint).FontSize(10).Color(widget.Hex(0x5F6F68)),
+			primitives.Text(scenario.SourcePath).FontSize(10).Color(widget.Hex(0x31574D)),
+		))
+	}
+	return section("Design", children, theme)
 }
 
 func contextSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
@@ -251,13 +272,6 @@ func railItem(name string, _ string) widget.Widget {
 	).Padding(10).Gap(4).Background(widget.Hex(0xF6FAF7)).Rounded(6)
 }
 
-func metric(label string, value string) widget.Widget {
-	return primitives.Box(
-		primitives.Text(value).FontSize(22).Bold().Color(widget.Hex(0x183D34)),
-		primitives.Text(label).FontSize(11).Color(widget.Hex(0x52645C)),
-	).Width(160).Padding(10).Gap(3).Background(widget.Hex(0xF6FAF7)).Rounded(6)
-}
-
 func card(children ...widget.Widget) widget.Widget {
 	return primitives.Box(children...).
 		Padding(10).
@@ -265,13 +279,6 @@ func card(children ...widget.Widget) widget.Widget {
 		Background(widget.Hex(0xFFFFFF)).
 		Rounded(6).
 		BorderStyle(1, widget.Hex(0xD8E1DC))
-}
-
-func labelValue(label string, value string) widget.Widget {
-	return card(
-		primitives.Text(label).FontSize(11).Bold().Color(widget.Hex(0x52645C)),
-		primitives.Text(value).FontSize(13).Color(widget.Hex(0x183D34)),
-	)
 }
 
 func boundary(text string) widget.Widget {

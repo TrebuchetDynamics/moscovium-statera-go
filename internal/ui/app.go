@@ -19,13 +19,16 @@ type Spec struct {
 }
 
 type AppModel struct {
-	Spec           Spec
-	Views          []ViewSpec
-	Summary        Summary
-	Isotopes       []IsotopeRecord
-	ClaimExamples  []ClaimExample
-	SourceRecords  []SourceRecord
-	ContextRecords []ContextRecord
+	Spec             Spec
+	Views            []ViewSpec
+	Summary          Summary
+	Isotopes         []IsotopeRecord
+	ClaimExamples    []ClaimExample
+	SourceRecords    []SourceRecord
+	EducationLessons []LessonRecord
+	ResearchItems    []ResearchItem
+	DesignScenarios  []DesignScenario
+	ContextRecords   []ContextRecord
 }
 
 type ViewSpec struct {
@@ -57,6 +60,13 @@ type ClaimExample struct {
 	Result physics.ClaimResult
 }
 
+type LessonRecord struct {
+	Title      string
+	Objective  string
+	Concept    string
+	SourcePath string
+}
+
 type SourceRecord struct {
 	Key        string
 	Track      string
@@ -65,6 +75,26 @@ type SourceRecord struct {
 	PDF        string
 	Relevance  string
 	SourcePath string
+}
+
+type ResearchItem struct {
+	Key        string
+	Track      string
+	Status     string
+	Identifier string
+	PDF        string
+	Relevance  string
+	SourcePath string
+}
+
+type DesignScenario struct {
+	Name          string
+	Goal          string
+	Inputs        []string
+	Result        physics.ClaimResult
+	SimulationUse string
+	Constraint    string
+	SourcePath    string
 }
 
 type ContextRecord struct {
@@ -83,16 +113,16 @@ func DefaultSpec() Spec {
 		Height: 760,
 		Modules: []ModuleSpec{
 			{
-				Name:        "Dashboard",
-				Description: "Track A/Track B status and current decay-chain smoke path.",
+				Name:        "Education",
+				Description: "Guided lessons for evaluated isotope data, decay traversal, and validator outcomes.",
 			},
 			{
-				Name:        "Physics",
-				Description: "Evaluated isotope records and deterministic claim-validator examples.",
+				Name:        "Research",
+				Description: "Citation and source records with provenance, status, and Track A/Track B labels.",
 			},
 			{
-				Name:        "Sources",
-				Description: "Citation records with read status and DOI or URL provenance.",
+				Name:        "Design",
+				Description: "Constrained scenario sandbox backed by the existing physics validator.",
 			},
 			{
 				Name:        "Context",
@@ -108,23 +138,28 @@ func DefaultModel() AppModel {
 	decayChain := decayChainIDs("288Mc", catalog)
 	isotopes := isotopeRecords(catalog)
 	sourceRecords := defaultSourceRecords()
+	researchItems := defaultResearchItems()
 	contextRecords := defaultContextRecords()
 	claimExamples := defaultClaimExamples(catalog)
+	designScenarios := defaultDesignScenarios(catalog)
 
 	return AppModel{
 		Spec:  spec,
 		Views: viewSpecs(spec.Modules),
 		Summary: Summary{
 			VerifiedIsotopes: len(isotopes),
-			CitationRecords:  len(sourceRecords),
+			CitationRecords:  len(researchItems),
 			ContextRecords:   len(contextRecords),
 			DecayChain:       decayChain,
 			BoundaryNotice:   "Track B context is excluded from simulation and cannot seed physics defaults.",
 		},
-		Isotopes:       isotopes,
-		ClaimExamples:  claimExamples,
-		SourceRecords:  sourceRecords,
-		ContextRecords: contextRecords,
+		Isotopes:         isotopes,
+		ClaimExamples:    claimExamples,
+		SourceRecords:    sourceRecords,
+		EducationLessons: defaultEducationLessons(),
+		ResearchItems:    researchItems,
+		DesignScenarios:  designScenarios,
+		ContextRecords:   contextRecords,
 	}
 }
 
@@ -179,6 +214,35 @@ func isotopeRecords(catalog physics.Catalog) []IsotopeRecord {
 	return records
 }
 
+func defaultEducationLessons() []LessonRecord {
+	return []LessonRecord{
+		{
+			Title:      "Evaluated Isotope Records",
+			Objective:  "Read a Track A isotope record as a small set of auditable fields: Z, A, half-life, Q alpha, daughter, and provenance.",
+			Concept:    "Simulation input starts from evaluated nuclear data, not from public narratives or unsourced claims.",
+			SourcePath: "data/research.seed.json",
+		},
+		{
+			Title:      "Decay-Chain Traversal",
+			Objective:  "Follow the current 288Mc smoke path through daughter records until the catalog chain terminates.",
+			Concept:    "Traversal is deterministic: each daughter ID must exist in the catalog or the chain stops with an error.",
+			SourcePath: "internal/physics/decay.go",
+		},
+		{
+			Title:      "Half-Life Checks",
+			Objective:  "Compare a minimum half-life claim with the catalog half-life for the named isotope.",
+			Concept:    "A short-lived isotope can support a millisecond-scale minimum while failing hour-scale stability claims.",
+			SourcePath: "internal/physics/claims.go",
+		},
+		{
+			Title:      "Supported Model Boundary",
+			Objective:  "Identify mechanism claims that have no standard-model path in the current validator.",
+			Concept:    "The validator can reject unsupported mechanisms without treating context records as physics evidence.",
+			SourcePath: "docs/research-charter.md",
+		},
+	}
+}
+
 func defaultClaimExamples(catalog physics.Catalog) []ClaimExample {
 	examples := []ClaimExample{
 		{
@@ -219,6 +283,102 @@ func defaultClaimExamples(catalog physics.Catalog) []ClaimExample {
 		examples[i].Result = physics.ValidateClaim(examples[i].Claim, catalog)
 	}
 	return examples
+}
+
+func defaultResearchItems() []ResearchItem {
+	items := defaultSourceRecords()
+	records := make([]ResearchItem, 0, len(items))
+	for _, item := range items {
+		records = append(records, ResearchItem{
+			Key:        item.Key,
+			Track:      item.Track,
+			Status:     item.Status,
+			Identifier: item.Identifier,
+			PDF:        item.PDF,
+			Relevance:  item.Relevance,
+			SourcePath: item.SourcePath,
+		})
+	}
+	return records
+}
+
+func defaultDesignScenarios(catalog physics.Catalog) []DesignScenario {
+	scenarios := []struct {
+		name       string
+		goal       string
+		inputs     []string
+		claim      physics.Claim
+		constraint string
+		sourcePath string
+	}{
+		{
+			name:   "Millisecond Stability Check",
+			goal:   "Confirm that the current catalog can support a 288Mc half-life threshold at or below the evaluated millisecond scale.",
+			inputs: []string{"288Mc", "minimum half-life 100ms", "Track A catalog"},
+			claim: physics.Claim{
+				Kind:            physics.ClaimKindMinimumHalfLife,
+				IsotopeID:       "288Mc",
+				MinimumHalfLife: 100 * time.Millisecond,
+			},
+			constraint: "Allowed only because the threshold is checked against the Track A half-life record.",
+			sourcePath: "data/research.seed.json",
+		},
+		{
+			name:   "Room-Scale Stability Rejection",
+			goal:   "Show that hour-scale stability claims are incongruent with the current 288Mc record.",
+			inputs: []string{"288Mc", "minimum half-life 1h", "Track A catalog"},
+			claim: physics.Claim{
+				Kind:            physics.ClaimKindMinimumHalfLife,
+				IsotopeID:       "288Mc",
+				MinimumHalfLife: time.Hour,
+			},
+			constraint: "Blocked because the requested half-life exceeds the evaluated catalog value used by the app.",
+			sourcePath: "data/research.seed.json",
+		},
+		{
+			name:   "Unsupported Mechanism Rejection",
+			goal:   "Show that a non-standard mechanism claim cannot become a simulation parameter.",
+			inputs: []string{"mechanism", "antigravity propulsion", "supported-model boundary"},
+			claim: physics.Claim{
+				Kind:      physics.ClaimKindMechanism,
+				Mechanism: "antigravity propulsion",
+			},
+			constraint: "Blocked because the current validator has no supported standard-model mechanism for this claim type.",
+			sourcePath: "docs/research-charter.md",
+		},
+		{
+			name:   "Mixed Claim Rejection",
+			goal:   "Show that a half-life check cannot be combined with mechanism text in one simulation input.",
+			inputs: []string{"288Mc", "minimum half-life 100ms", "mechanism text"},
+			claim: physics.Claim{
+				Kind:            physics.ClaimKindMinimumHalfLife,
+				IsotopeID:       "288Mc",
+				MinimumHalfLife: 100 * time.Millisecond,
+				Mechanism:       "antigravity propulsion",
+			},
+			constraint: "Blocked because the validator requires a single coherent claim shape.",
+			sourcePath: "internal/physics/claims.go",
+		},
+	}
+
+	records := make([]DesignScenario, 0, len(scenarios))
+	for _, scenario := range scenarios {
+		result := physics.ValidateClaim(scenario.claim, catalog)
+		simulationUse := "blocked"
+		if result.Status == physics.ClaimStatusSupportedByTrackA {
+			simulationUse = "allowed"
+		}
+		records = append(records, DesignScenario{
+			Name:          scenario.name,
+			Goal:          scenario.goal,
+			Inputs:        scenario.inputs,
+			Result:        result,
+			SimulationUse: simulationUse,
+			Constraint:    scenario.constraint,
+			SourcePath:    scenario.sourcePath,
+		})
+	}
+	return records
 }
 
 func defaultSourceRecords() []SourceRecord {
