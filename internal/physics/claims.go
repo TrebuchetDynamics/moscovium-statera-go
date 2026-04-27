@@ -36,6 +36,10 @@ type ClaimResult struct {
 }
 
 func ValidateClaim(claim Claim, catalog Catalog) ClaimResult {
+	if result, ok := validateClaimShape(claim); !ok {
+		return result
+	}
+
 	switch claim.Kind {
 	case ClaimKindMinimumHalfLife:
 		return validateMinimumHalfLifeClaim(claim, catalog)
@@ -47,6 +51,20 @@ func ValidateClaim(claim Claim, catalog Catalog) ClaimResult {
 			Reason: fmt.Sprintf("unknown claim kind %q", claim.Kind),
 		}
 	}
+}
+
+func validateClaimShape(claim Claim) (ClaimResult, bool) {
+	switch claim.Kind {
+	case ClaimKindMinimumHalfLife:
+		if claim.Mechanism != "" {
+			return ClaimResult{Status: ClaimStatusInvalidClaim, Reason: "claim mixes multiple assertions"}, false
+		}
+	case ClaimKindMechanism:
+		if claim.IsotopeID != "" || claim.MinimumHalfLife != 0 {
+			return ClaimResult{Status: ClaimStatusInvalidClaim, Reason: "claim mixes multiple assertions"}, false
+		}
+	}
+	return ClaimResult{}, true
 }
 
 func validateMinimumHalfLifeClaim(claim Claim, catalog Catalog) ClaimResult {

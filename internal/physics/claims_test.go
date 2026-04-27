@@ -44,6 +44,26 @@ func TestValidateClaimSupportsMinimumHalfLifeWithinKnownData(t *testing.T) {
 	}
 }
 
+func TestValidateClaimRejectsMinimumHalfLifeClaimWithMechanism(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 288, HalfLife: 170 * time.Millisecond, CitationLink: "https://www.nndc.bnl.gov/ensnds/288/Mc/adopted.pdf"},
+	}
+
+	result := ValidateClaim(Claim{
+		Kind:            ClaimKindMinimumHalfLife,
+		IsotopeID:       "288Mc",
+		MinimumHalfLife: 100 * time.Millisecond,
+		Mechanism:       "antigravity propulsion",
+	}, catalog)
+
+	if result.Status != ClaimStatusInvalidClaim {
+		t.Fatalf("status = %q, want %q", result.Status, ClaimStatusInvalidClaim)
+	}
+	if !strings.Contains(result.Reason, "mixes multiple assertions") {
+		t.Fatalf("reason = %q, want mixed assertion explanation", result.Reason)
+	}
+}
+
 func TestValidateClaimReturnsInsufficientDataForUnknownIsotope(t *testing.T) {
 	result := ValidateClaim(Claim{
 		Kind:            ClaimKindMinimumHalfLife,
@@ -86,6 +106,22 @@ func TestValidateClaimRejectsUnsupportedMechanism(t *testing.T) {
 	}
 	if !strings.Contains(result.Reason, "outside Standard Model-compatible nuclear physics") {
 		t.Fatalf("reason = %q, want model-boundary explanation", result.Reason)
+	}
+}
+
+func TestValidateClaimRejectsMechanismClaimWithMinimumHalfLife(t *testing.T) {
+	result := ValidateClaim(Claim{
+		Kind:            ClaimKindMechanism,
+		IsotopeID:       "288Mc",
+		MinimumHalfLife: 100 * time.Millisecond,
+		Mechanism:       "antigravity propulsion",
+	}, Catalog{})
+
+	if result.Status != ClaimStatusInvalidClaim {
+		t.Fatalf("status = %q, want %q", result.Status, ClaimStatusInvalidClaim)
+	}
+	if !strings.Contains(result.Reason, "mixes multiple assertions") {
+		t.Fatalf("reason = %q, want mixed assertion explanation", result.Reason)
 	}
 }
 
