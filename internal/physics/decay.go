@@ -3,6 +3,7 @@ package physics
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -45,29 +46,50 @@ func DecayChain(start string, catalog Catalog) ([]Isotope, error) {
 
 	visited := make(map[string]bool)
 	chain := make([]Isotope, 0, 8)
-	if err := traverse(start, catalog, visited, &chain); err != nil {
+	if err := traverse(start, "", catalog, visited, nil, &chain); err != nil {
 		return nil, err
 	}
 	return chain, nil
 }
 
-func traverse(id string, catalog Catalog, visited map[string]bool, chain *[]Isotope) error {
+func traverse(id string, parent string, catalog Catalog, visited map[string]bool, path []string, chain *[]Isotope) error {
 	if visited[id] {
-		return fmt.Errorf("cycle detected at %s", id)
+		return fmt.Errorf("cycle detected: %s", formatCycle(path, id))
 	}
 
 	isotope, ok := catalog[id]
 	if !ok {
+		if parent != "" {
+			return fmt.Errorf("daughter %s referenced by %s not found in catalog", id, parent)
+		}
 		return fmt.Errorf("isotope %s not found in catalog", id)
+	}
+	if isotope.ID() != id {
+		return fmt.Errorf("catalog key %s does not match isotope ID %s", id, isotope.ID())
 	}
 	if err := isotope.Validate(); err != nil {
 		return err
 	}
 
 	visited[id] = true
+	path = append(path, id)
 	*chain = append(*chain, isotope)
 	if isotope.Daughter == "" {
 		return nil
 	}
-	return traverse(isotope.Daughter, catalog, visited, chain)
+	return traverse(isotope.Daughter, id, catalog, visited, path, chain)
+}
+
+func formatCycle(path []string, id string) string {
+	start := 0
+	for index, pathID := range path {
+		if pathID == id {
+			start = index
+			break
+		}
+	}
+
+	cycle := append([]string{}, path[start:]...)
+	cycle = append(cycle, id)
+	return strings.Join(cycle, " -> ")
 }

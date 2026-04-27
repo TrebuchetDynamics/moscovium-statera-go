@@ -2,6 +2,7 @@ package physics
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -49,5 +50,48 @@ func TestIsotopeRequiresCitation(t *testing.T) {
 	isotope := Isotope{Symbol: "Mc", Z: 115, A: 288}
 	if err := isotope.Validate(); err == nil {
 		t.Fatal("Validate returned nil error for isotope without citation")
+	}
+}
+
+func TestDecayChainRejectsCatalogKeyMismatch(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 290, CitationLink: "seed"},
+	}
+
+	_, err := DecayChain("288Mc", catalog)
+	if err == nil {
+		t.Fatal("DecayChain returned nil error for catalog key mismatch")
+	}
+	if !strings.Contains(err.Error(), "catalog key 288Mc does not match isotope ID 290Mc") {
+		t.Fatalf("error = %q, want catalog key mismatch", err)
+	}
+}
+
+func TestDecayChainReportsMissingDaughterParent(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 288, Daughter: "284Nh", CitationLink: "seed"},
+	}
+
+	_, err := DecayChain("288Mc", catalog)
+	if err == nil {
+		t.Fatal("DecayChain returned nil error for missing daughter")
+	}
+	if !strings.Contains(err.Error(), "daughter 284Nh referenced by 288Mc not found in catalog") {
+		t.Fatalf("error = %q, want missing daughter with parent context", err)
+	}
+}
+
+func TestDecayChainReportsCyclePath(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 288, Daughter: "284Nh", CitationLink: "seed"},
+		"284Nh": {Symbol: "Nh", Z: 113, A: 284, Daughter: "288Mc", CitationLink: "seed"},
+	}
+
+	_, err := DecayChain("288Mc", catalog)
+	if err == nil {
+		t.Fatal("DecayChain returned nil error for cyclic decay graph")
+	}
+	if !strings.Contains(err.Error(), "cycle detected: 288Mc -> 284Nh -> 288Mc") {
+		t.Fatalf("error = %q, want cycle path", err)
 	}
 }
