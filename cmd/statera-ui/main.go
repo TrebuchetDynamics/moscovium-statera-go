@@ -3,6 +3,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	_ "github.com/gogpu/gg/gpu"
 	"github.com/gogpu/gg/integration/ggcanvas"
 	"github.com/gogpu/gogpu"
+	"github.com/gogpu/gpucontext"
 	uiapp "github.com/gogpu/ui/app"
 	"github.com/gogpu/ui/core/scrollview"
 	"github.com/gogpu/ui/primitives"
@@ -22,19 +24,28 @@ import (
 )
 
 func main() {
+	screenshotPath := flag.String("screenshot", "", "write an offscreen PNG screenshot and exit")
+	flag.Parse()
+
 	model := ui.DefaultModel()
+	seed := widget.Hex(0x2F5D50)
+	materialTheme := material3.New(seed)
+	if *screenshotPath != "" {
+		if err := saveScreenshot(*screenshotPath, model, materialTheme); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	gpuApp := gogpu.NewApp(gogpu.DefaultConfig().
 		WithTitle(model.Spec.Title).
 		WithSize(model.Spec.Width, model.Spec.Height).
 		WithContinuousRender(false))
 
-	seed := widget.Hex(0x2F5D50)
 	appTheme := uitheme.DefaultLight()
 	appTheme.Colors.Primary = seed
 	appTheme.Colors.PrimaryDark = widget.Hex(0x1F463C)
 	appTheme.Colors.PrimaryLight = widget.Hex(0x6F9C8D)
-	materialTheme := material3.New(seed)
 	app := uiapp.New(
 		uiapp.WithWindowProvider(gpuApp),
 		uiapp.WithPlatformProvider(gpuApp),
@@ -90,6 +101,23 @@ func main() {
 	if err := gpuApp.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func saveScreenshot(path string, model ui.AppModel, theme *material3.Theme) error {
+	appTheme := uitheme.DefaultLight()
+	app := uiapp.New(
+		uiapp.WithWindowProvider(gpucontext.NullWindowProvider{W: model.Spec.Width, H: model.Spec.Height}),
+		uiapp.WithTheme(appTheme),
+	)
+	app.SetRoot(buildRoot(model, theme))
+	app.Frame()
+
+	dc := gg.NewContext(model.Spec.Width, model.Spec.Height)
+	dc.SetRGBA(0.96, 0.97, 0.96, 1)
+	dc.DrawRectangle(0, 0, float64(model.Spec.Width), float64(model.Spec.Height))
+	dc.Fill()
+	app.Window().DrawTo(render.NewCanvas(dc, model.Spec.Width, model.Spec.Height))
+	return dc.SavePNG(path)
 }
 
 func buildRoot(model ui.AppModel, theme *material3.Theme) widget.Widget {
@@ -199,10 +227,9 @@ func section(title string, children []widget.Widget, theme *material3.Theme) wid
 		BorderStyle(1, widget.Hex(0xD4DED8))
 }
 
-func railItem(name string, description string) widget.Widget {
+func railItem(name string, _ string) widget.Widget {
 	return primitives.Box(
 		primitives.Text(name).FontSize(14).Bold().Color(widget.Hex(0x183D34)),
-		primitives.Text(description).FontSize(11).Color(widget.Hex(0x52645C)),
 	).Padding(10).Gap(4).Background(widget.Hex(0xF6FAF7)).Rounded(6)
 }
 

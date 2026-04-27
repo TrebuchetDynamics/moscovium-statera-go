@@ -8,6 +8,12 @@ Primary launch command:
 CGO_ENABLED=0 go run ./cmd/statera-ui
 ```
 
+Deterministic offscreen capture command:
+
+```bash
+CGO_ENABLED=0 go run ./cmd/statera-ui -screenshot screenshots/statera-mvp-offscreen-2026-04-27.png
+```
+
 On a headless machine or a shell without a graphical session, the run can fail before opening a window with:
 
 ```text
