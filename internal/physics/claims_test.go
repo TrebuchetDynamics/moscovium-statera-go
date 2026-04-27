@@ -56,6 +56,25 @@ func TestValidateClaimReturnsInsufficientDataForUnknownIsotope(t *testing.T) {
 	}
 }
 
+func TestValidateClaimRejectsMismatchedCatalogIdentity(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 290, HalfLife: 170 * time.Millisecond, CitationLink: "https://www.nndc.bnl.gov/ensnds/288/Mc/adopted.pdf"},
+	}
+
+	result := ValidateClaim(Claim{
+		Kind:            ClaimKindMinimumHalfLife,
+		IsotopeID:       "288Mc",
+		MinimumHalfLife: 100 * time.Millisecond,
+	}, catalog)
+
+	if result.Status != ClaimStatusInvalidClaim {
+		t.Fatalf("status = %q, want %q", result.Status, ClaimStatusInvalidClaim)
+	}
+	if !strings.Contains(result.Reason, "catalog key 288Mc does not match isotope ID 290Mc") {
+		t.Fatalf("reason = %q, want catalog identity mismatch", result.Reason)
+	}
+}
+
 func TestValidateClaimRejectsUnsupportedMechanism(t *testing.T) {
 	result := ValidateClaim(Claim{
 		Kind:      ClaimKindMechanism,

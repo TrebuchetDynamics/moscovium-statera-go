@@ -64,6 +64,12 @@ func validateMinimumHalfLifeClaim(claim Claim, catalog Catalog) ClaimResult {
 			Reason: fmt.Sprintf("isotope %s is not present in Track A catalog", claim.IsotopeID),
 		}
 	}
+	if isotope.ID() != claim.IsotopeID {
+		return ClaimResult{
+			Status: ClaimStatusInvalidClaim,
+			Reason: fmt.Sprintf("catalog key %s does not match isotope ID %s", claim.IsotopeID, isotope.ID()),
+		}
+	}
 	if err := isotope.Validate(); err != nil {
 		return ClaimResult{Status: ClaimStatusInvalidClaim, Reason: err.Error()}
 	}
