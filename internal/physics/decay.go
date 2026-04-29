@@ -46,6 +46,27 @@ func (i Isotope) Validate() error {
 	return nil
 }
 
+func ValidateCatalog(catalog Catalog) error {
+	for id, isotope := range catalog {
+		if _, err := ParseNuclideID(id); err != nil {
+			return err
+		}
+		if isotope.ID() != id {
+			return fmt.Errorf("catalog key %s does not match isotope ID %s", id, isotope.ID())
+		}
+		if err := isotope.Validate(); err != nil {
+			detail := strings.TrimPrefix(err.Error(), isotope.ID()+" ")
+			return fmt.Errorf("catalog key %s %s", id, detail)
+		}
+		if isotope.Daughter != "" {
+			if err := ValidateAlphaDaughterID(id, isotope.Daughter); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func DecayChain(start string, catalog Catalog) ([]Isotope, error) {
 	if start == "" {
 		return nil, errors.New("start isotope is required")

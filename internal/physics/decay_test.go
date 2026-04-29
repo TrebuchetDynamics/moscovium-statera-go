@@ -78,6 +78,76 @@ func TestDecayChainRejectsCatalogKeyMismatch(t *testing.T) {
 	}
 }
 
+func TestValidateCatalogRejectsKeyIdentityAndDaughterErrorsBeforeTraversal(t *testing.T) {
+	validCatalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 288, Daughter: "284Nh", CitationLink: "seed"},
+		"284Nh": {Symbol: "Nh", Z: 113, A: 284, CitationLink: "seed"},
+	}
+	if err := ValidateCatalog(validCatalog); err != nil {
+		t.Fatalf("ValidateCatalog rejected valid catalog: %v", err)
+	}
+
+	cases := []struct {
+		name   string
+		mutate func(Catalog)
+		want   string
+	}{
+		{
+			name: "malformed catalog key",
+			mutate: func(catalog Catalog) {
+				catalog["Mc288"] = catalog["288Mc"]
+				delete(catalog, "288Mc")
+			},
+			want: "nuclide ID \"Mc288\" must start with a mass number",
+		},
+		{
+			name: "key isotope identity mismatch",
+			mutate: func(catalog Catalog) {
+				catalog["288Mc"] = Isotope{Symbol: "Mc", Z: 115, A: 290, Daughter: "284Nh", CitationLink: "seed"}
+			},
+			want: "catalog key 288Mc does not match isotope ID 290Mc",
+		},
+		{
+			name: "key atomic number mismatch",
+			mutate: func(catalog Catalog) {
+				catalog["288Mc"] = Isotope{Symbol: "Mc", Z: 113, A: 288, Daughter: "284Nh", CitationLink: "seed"}
+			},
+			want: "catalog key 288Mc has Z=113, want 115 for symbol Mc",
+		},
+		{
+			name: "non-alpha daughter",
+			mutate: func(catalog Catalog) {
+				catalog["288Mc"] = Isotope{Symbol: "Mc", Z: 115, A: 288, Daughter: "285Nh", CitationLink: "seed"}
+				catalog["285Nh"] = Isotope{Symbol: "Nh", Z: 113, A: 285, CitationLink: "seed"}
+				delete(catalog, "284Nh")
+			},
+			want: "288Mc alpha daughter 285Nh has A=285, want 284",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			catalog := cloneCatalog(validCatalog)
+			tc.mutate(catalog)
+			err := ValidateCatalog(catalog)
+			if err == nil {
+				t.Fatal("ValidateCatalog accepted invalid catalog")
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %q, want substring %q", err.Error(), tc.want)
+			}
+		})
+	}
+}
+
+func cloneCatalog(catalog Catalog) Catalog {
+	clone := make(Catalog, len(catalog))
+	for id, isotope := range catalog {
+		clone[id] = isotope
+	}
+	return clone
+}
+
 func TestDecayChainReportsMissingDaughterParent(t *testing.T) {
 	catalog := Catalog{
 		"288Mc": {Symbol: "Mc", Z: 115, A: 288, Daughter: "284Nh", CitationLink: "seed"},
