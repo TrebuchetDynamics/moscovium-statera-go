@@ -79,6 +79,16 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			want:   "289Mc ID mismatch, want 288Mc from A=288 and symbol=Mc",
 		},
 		{
+			name: "duplicate record ID",
+			mutate: func(seed *ResearchSeed) {
+				seed.Records[1].ID = seed.Records[0].ID
+				seed.Records[1].A = seed.Records[0].A
+				seed.Records[1].N = seed.Records[0].N
+				seed.Records[1].Daughter = seed.Records[0].Daughter
+			},
+			want: "duplicate seed record ID 288Mc",
+		},
+		{
 			name:   "malformed DOI",
 			mutate: func(seed *ResearchSeed) { seed.Records[0].DOIs[0] = "PhysRevC.106.L031301" },
 			want:   "288Mc DOI",

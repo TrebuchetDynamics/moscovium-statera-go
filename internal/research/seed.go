@@ -49,11 +49,16 @@ func (seed ResearchSeed) Clone() ResearchSeed {
 }
 
 func ValidateResearchSeedProvenance(seed ResearchSeed) error {
+	seenIDs := map[string]bool{}
 	for _, record := range seed.Records {
 		nuclide, err := physics.ParseNuclideID(record.ID)
 		if err != nil {
 			return err
 		}
+		if seenIDs[record.ID] {
+			return fmt.Errorf("duplicate seed record ID %s", record.ID)
+		}
+		seenIDs[record.ID] = true
 		expectedID := fmt.Sprintf("%d%s", record.A, record.Symbol)
 		if record.ID != expectedID {
 			return fmt.Errorf("%s ID mismatch, want %s from A=%d and symbol=%s", record.ID, expectedID, record.A, record.Symbol)
