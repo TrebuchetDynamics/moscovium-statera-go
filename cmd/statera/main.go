@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -13,6 +14,11 @@ import (
 )
 
 func main() {
+	options := provenanceNodeTableOptions{}
+	flag.StringVar(&options.NodeType, "provenance-node-type", "", "optional provenance node table filter by node_type")
+	flag.StringVar(&options.Status, "provenance-status", "", "optional provenance node table filter by status")
+	flag.Parse()
+
 	catalog := physics.Catalog{
 		"288Mc": {Symbol: "Mc", Z: 115, A: 288, HalfLife: 170 * time.Millisecond, QAlphaMeV: 10.75, Daughter: "284Nh", CitationLink: "https://www.nndc.bnl.gov/ensnds/288/Mc/adopted.pdf"},
 		"284Nh": {Symbol: "Nh", Z: 113, A: 284, Daughter: "280Rg", CitationLink: "data/research.seed.json"},
@@ -36,14 +42,23 @@ func main() {
 	}
 	fmt.Println()
 
-	report, err := provenanceNodeTableReport("data/research.seed.json")
+	report, err := provenanceNodeTableReportWithOptions("data/research.seed.json", options)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Print(report)
 }
 
+type provenanceNodeTableOptions struct {
+	NodeType string
+	Status   string
+}
+
 func provenanceNodeTableReport(seedPath string) (string, error) {
+	return provenanceNodeTableReportWithOptions(seedPath, provenanceNodeTableOptions{})
+}
+
+func provenanceNodeTableReportWithOptions(seedPath string, options provenanceNodeTableOptions) (string, error) {
 	raw, err := os.ReadFile(seedPath)
 	if err != nil {
 		return "", err
@@ -61,9 +76,13 @@ func provenanceNodeTableReport(seedPath string) (string, error) {
 		return "", err
 	}
 
-	rows := graph.NodeTableRows()
+	rows := filterProvenanceNodeTableRows(graph.NodeTableRows(), options)
 	var builder strings.Builder
-	fmt.Fprintf(&builder, "provenance_node_table rows=%d columns=8\n", len(rows))
+	fmt.Fprintf(&builder, "provenance_node_table rows=%d columns=8", len(rows))
+	if filterSummary := provenanceNodeTableFilterSummary(options); filterSummary != "" {
+		fmt.Fprintf(&builder, " filters=%s", filterSummary)
+	}
+	builder.WriteString("\n")
 	builder.WriteString("node_id\tnode_type\tstatus\tsource_path\tdoi_or_url\tincoming_edges\toutgoing_edges\torphan\n")
 	for _, row := range rows {
 		fmt.Fprintf(
@@ -80,4 +99,34 @@ func provenanceNodeTableReport(seedPath string) (string, error) {
 		)
 	}
 	return builder.String(), nil
+}
+
+func filterProvenanceNodeTableRows(rows []research.ProvenanceNodeTableRow, options provenanceNodeTableOptions) []research.ProvenanceNodeTableRow {
+	nodeType := strings.TrimSpace(options.NodeType)
+	status := strings.TrimSpace(options.Status)
+	if nodeType == "" && status == "" {
+		return rows
+	}
+	filtered := make([]research.ProvenanceNodeTableRow, 0, len(rows))
+	for _, row := range rows {
+		if nodeType != "" && string(row.NodeType) != nodeType {
+			continue
+		}
+		if status != "" && row.Status != status {
+			continue
+		}
+		filtered = append(filtered, row)
+	}
+	return filtered
+}
+
+func provenanceNodeTableFilterSummary(options provenanceNodeTableOptions) string {
+	parts := []string{}
+	if nodeType := strings.TrimSpace(options.NodeType); nodeType != "" {
+		parts = append(parts, "node_type="+nodeType)
+	}
+	if status := strings.TrimSpace(options.Status); status != "" {
+		parts = append(parts, "status="+status)
+	}
+	return strings.Join(parts, ",")
 }

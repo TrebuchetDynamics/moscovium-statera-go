@@ -36,3 +36,30 @@ func TestProvenanceNodeTableReportIsDeterministicAndSourceBacked(t *testing.T) {
 		}
 	}
 }
+
+func TestProvenanceNodeTableReportFiltersByTypeAndStatus(t *testing.T) {
+	report, err := provenanceNodeTableReportWithOptions("../../data/research.seed.json", provenanceNodeTableOptions{NodeType: "blocked_source", Status: "blocked"})
+	if err != nil {
+		t.Fatalf("provenanceNodeTableReportWithOptions returned error: %v", err)
+	}
+
+	for _, want := range []string{
+		"provenance_node_table rows=2 columns=8 filters=node_type=blocked_source,status=blocked",
+		"blocked_source:royer2008alphaAnalytic\tblocked_source\tblocked\tcitations/papers/royer2008alpha-analytic.md\t10.1103/PhysRevC.77.037602\t0\t2\tfalse",
+		"blocked_source:wang2015alphaSystematics\tblocked_source\tblocked\tcitations/papers/wang2015alpha-systematics.md\t10.1103/PhysRevC.92.064301\t0\t2\tfalse",
+	} {
+		if !strings.Contains(report, want) {
+			t.Fatalf("filtered report missing %q\nfull report:\n%s", want, report)
+		}
+	}
+	for _, unwanted := range []string{"isotope:288Mc", "doi:10.1103/PhysRevC.77.037602"} {
+		if strings.Contains(report, unwanted) {
+			t.Fatalf("filtered report unexpectedly contains %q\nfull report:\n%s", unwanted, report)
+		}
+	}
+
+	lines := strings.Split(strings.TrimSpace(report), "\n")
+	if got, want := len(lines), 4; got != want {
+		t.Fatalf("filtered line count = %d, want %d", got, want)
+	}
+}
