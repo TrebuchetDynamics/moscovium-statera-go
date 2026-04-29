@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -15,10 +16,25 @@ import (
 
 func main() {
 	options := provenanceNodeTableOptions{}
+	decaySimulationFormat := ""
+	decaySimulationSamples := 64
+	decaySimulationSeed := int64(20260429)
 	flag.StringVar(&options.NodeType, "provenance-node-type", "", "optional provenance node table filter by node_type")
 	flag.StringVar(&options.Status, "provenance-status", "", "optional provenance node table filter by status")
 	flag.StringVar(&options.Format, "provenance-format", "tsv", "provenance node table output format: tsv or json")
+	flag.StringVar(&decaySimulationFormat, "decay-simulation-format", "", "decay simulation output format: json")
+	flag.IntVar(&decaySimulationSamples, "decay-simulation-samples", decaySimulationSamples, "decay simulation Monte Carlo sample count")
+	flag.Int64Var(&decaySimulationSeed, "decay-simulation-seed", decaySimulationSeed, "decay simulation deterministic RNG seed")
 	flag.Parse()
+
+	if strings.TrimSpace(decaySimulationFormat) == "json" {
+		report, err := decaySimulationSeedJSONReport("data/research.seed.json", decaySimulationSamples, decaySimulationSeed)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Print(report)
+		return
+	}
 
 	if strings.TrimSpace(options.Format) == "json" {
 		report, err := provenanceNodeTableReportWithOptions("data/research.seed.json", options)
@@ -63,6 +79,59 @@ type provenanceNodeTableOptions struct {
 	NodeType string
 	Status   string
 	Format   string
+}
+
+type decaySimulationSeedJSONPayload struct {
+	ReportType  string                          `json:"report_type"`
+	SourcePath  string                          `json:"source_path"`
+	SampleCount int                             `json:"sample_count"`
+	Seed        int64                           `json:"seed"`
+	Records     []physics.DecaySimulationRecord `json:"records"`
+}
+
+func decaySimulationSeedJSONReport(seedPath string, samples int, seed int64) (string, error) {
+	raw, err := os.ReadFile(seedPath)
+	if err != nil {
+		return "", err
+	}
+	var researchSeed research.ResearchSeed
+	if err := json.Unmarshal(raw, &researchSeed); err != nil {
+		return "", err
+	}
+	workbook, err := research.WorkbookFromSeed(researchSeed, "data/research.seed.json")
+	if err != nil {
+		return "", err
+	}
+	sort.Slice(workbook, func(i, j int) bool { return workbook[i].ID < workbook[j].ID })
+
+	payload := decaySimulationSeedJSONPayload{
+		ReportType:  "decay_simulation_seed_summary",
+		SourcePath:  "data/research.seed.json",
+		SampleCount: samples,
+		Seed:        seed,
+		Records:     make([]physics.DecaySimulationRecord, 0, len(workbook)),
+	}
+	for _, record := range workbook {
+		isotope := physics.Isotope{
+			Symbol:       record.Symbol,
+			Z:            record.Z,
+			A:            record.A,
+			HalfLife:     time.Duration(record.HalfLifeSeconds * float64(time.Second)),
+			QAlphaMeV:    record.QAlphaMeV,
+			CitationLink: record.SourcePath,
+		}
+		catalog := physics.Catalog{record.ID: isotope}
+		report, err := physics.DecaySimulationSummary(record.ID, catalog, physics.SimulationOptions{Samples: samples, Seed: seed})
+		if err != nil {
+			return "", err
+		}
+		payload.Records = append(payload.Records, report.Records...)
+	}
+	rawPayload, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(rawPayload) + "\n", nil
 }
 
 func provenanceNodeTableReport(seedPath string) (string, error) {
