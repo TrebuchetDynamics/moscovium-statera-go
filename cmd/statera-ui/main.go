@@ -28,13 +28,14 @@ import (
 
 func main() {
 	screenshotPath := flag.String("screenshot", "", "write an offscreen PNG screenshot and exit")
+	screenshotView := flag.String("screenshot-view", "overview", "screenshot view: overview, workbook, provenance, roadmap, simulation, or alpha")
 	flag.Parse()
 
 	model := ui.DefaultModel()
 	seed := widget.Hex(0x2F5D50)
 	materialTheme := material3.New(seed)
 	if *screenshotPath != "" {
-		if err := saveScreenshot(*screenshotPath, model, materialTheme); err != nil {
+		if err := saveScreenshotView(*screenshotPath, model, materialTheme, *screenshotView); err != nil {
 			log.Fatal(err)
 		}
 		return
@@ -123,12 +124,20 @@ func headlessScreenshotPath(tempDir string) string {
 }
 
 func saveScreenshot(path string, model ui.AppModel, theme *material3.Theme) error {
+	return saveScreenshotView(path, model, theme, "overview")
+}
+
+func saveScreenshotView(path string, model ui.AppModel, theme *material3.Theme, viewName string) error {
 	appTheme := uitheme.DefaultLight()
 	app := uiapp.New(
 		uiapp.WithWindowProvider(gpucontext.NullWindowProvider{W: model.Spec.Width, H: model.Spec.Height}),
 		uiapp.WithTheme(appTheme),
 	)
-	app.SetRoot(buildRoot(model, theme))
+	root, err := screenshotRootForView(model, theme, viewName)
+	if err != nil {
+		return err
+	}
+	app.SetRoot(root)
 	app.Frame()
 
 	dc := gg.NewContext(model.Spec.Width, model.Spec.Height)
@@ -137,6 +146,115 @@ func saveScreenshot(path string, model ui.AppModel, theme *material3.Theme) erro
 	dc.Fill()
 	app.Window().DrawTo(render.NewCanvas(dc, model.Spec.Width, model.Spec.Height))
 	return dc.SavePNG(path)
+}
+
+type screenshotCard struct {
+	Title string
+	Lines []string
+}
+
+type screenshotViewSpec struct {
+	Title    string
+	Subtitle string
+	Cards    []screenshotCard
+}
+
+func screenshotViews(model ui.AppModel) map[string]screenshotViewSpec {
+	views := map[string]screenshotViewSpec{}
+	views["overview"] = screenshotViewSpec{
+		Title:    "Research workbench overview",
+		Subtitle: "Current source-backed status and safe next steps.",
+		Cards: []screenshotCard{
+			{Title: "Dataset", Lines: []string{fmt.Sprintf("Track A isotopes: %d", model.Summary.VerifiedIsotopes), fmt.Sprintf("Research records: %d", model.Summary.CitationRecords), fmt.Sprintf("Context records: %d", model.Summary.ContextRecords)}},
+			{Title: "Decay chain", Lines: []string{strings.Join(model.Summary.DecayChain, " -> ")}},
+			{Title: "Boundary", Lines: []string{model.Summary.BoundaryNotice}},
+			{Title: "Implemented views", Lines: []string{"Workbook records", "Provenance graph data", "Alpha model comparison", "Design scenario gates"}},
+		},
+	}
+
+	workbookCards := []screenshotCard{{Title: "Workbook rule", Lines: []string{"Derived from validated research seed records.", "No daughter placeholders or new scientific values."}}}
+	for _, record := range model.Workbook {
+		workbookCards = append(workbookCards, screenshotCard{Title: record.ID, Lines: []string{
+			fmt.Sprintf("%s (%s): Z=%d A=%d N=%d", record.Element, record.Symbol, record.Z, record.A, record.N),
+			fmt.Sprintf("daughter: %s", record.Daughter),
+			fmt.Sprintf("citations=%d DOIs=%d", record.CitationCount, record.DOICount),
+			fmt.Sprintf("source: %s", record.SourcePath),
+		}})
+	}
+	views["workbook"] = screenshotViewSpec{Title: "Evaluated isotope workbook", Subtitle: "Accepted seed records rendered as auditable workbook cards.", Cards: workbookCards}
+
+	provenanceCards := []screenshotCard{{Title: "Graph summary", Lines: []string{model.ProvenanceSummary}}}
+	for i, node := range model.ProvenanceNodes {
+		if i >= 8 {
+			break
+		}
+		provenanceCards = append(provenanceCards, screenshotCard{Title: node.NodeID, Lines: []string{
+			fmt.Sprintf("type=%s status=%s orphan=%v", node.NodeType, node.Status, node.Orphan),
+			fmt.Sprintf("edges in=%d out=%d", node.IncomingEdges, node.OutgoingEdges),
+			fmt.Sprintf("source=%s", node.SourcePath),
+		}})
+	}
+	views["provenance"] = screenshotViewSpec{Title: "Provenance graph node table", Subtitle: "Graph facts before graph drawings: source, DOI, citation, isotope, and blocker nodes.", Cards: provenanceCards}
+
+	views["roadmap"] = screenshotViewSpec{
+		Title:    "Simulation and visualization roadmap",
+		Subtitle: "Planned build order from source-backed data to screenshots and simulations.",
+		Cards: []screenshotCard{
+			{Title: "1. Evaluated isotope workbook", Lines: []string{"Implemented: records, validation, UI model, screenshot.", "Next: expand only after source review and tests."}},
+			{Title: "2. Evidence and provenance graph", Lines: []string{"Implemented: graph data model and node table.", "Next: render source/DOI/blocker table in screenshots."}},
+			{Title: "3. Decay-chain simulation", Lines: []string{"Next calculations: decay constant lambda = ln(2)/T1/2.", "Mean life = T1/2 / ln(2).", "Monte Carlo requires fixed RNG seed."}},
+			{Title: "4. Visual outputs", Lines: []string{"Workbook cards, provenance table, alpha residuals.", "Later: N-Z chart, Q-alpha worksheet, excitation-function view."}},
+			{Title: "5. Safe ML", Lines: []string{"Source triage and duplicate DOI/URL detection first.", "No ML-derived physics defaults."}},
+		},
+	}
+
+	views["simulation"] = screenshotViewSpec{
+		Title:    "Decay simulation preview",
+		Subtitle: "What we will simulate next; no new stochastic engine output yet.",
+		Cards: []screenshotCard{
+			{Title: "Current deterministic chain", Lines: []string{strings.Join(model.Summary.DecayChain, " -> ")}},
+			{Title: "Decay constants", Lines: []string{"For each accepted isotope: lambda = ln(2)/T1/2.", "Mean life = 1/lambda.", "Units: seconds and inverse seconds."}},
+			{Title: "Monte Carlo plan", Lines: []string{"Inputs: isotope, half-life, sample count, RNG seed.", "Outputs: median, p05, p95 decay time.", "Tests: deterministic with fixed seed."}},
+			{Title: "Current limits", Lines: []string{"Only 2 accepted Track A seed isotope records.", "More daughters need source-backed accepted records before simulation defaults."}},
+		},
+	}
+
+	alphaCards := []screenshotCard{{Title: "Model boundary", Lines: []string{"Royer output is peer-reviewed-model output.", "It never replaces evaluated half-lives."}}}
+	for _, record := range model.AlphaSystematics {
+		if record.Skipped {
+			alphaCards = append(alphaCards, screenshotCard{Title: record.IsotopeID, Lines: []string{fmt.Sprintf("skipped: %s", record.SkipReason), record.EvidenceClass}})
+			continue
+		}
+		alphaCards = append(alphaCards, screenshotCard{Title: record.IsotopeID, Lines: []string{
+			fmt.Sprintf("Z=%d A=%d parity=%s Q_alpha=%.2f MeV", record.Z, record.A, record.ParityClass, record.QAlphaMeV),
+			fmt.Sprintf("evaluated T1/2=%s", record.EvaluatedHalfLife),
+			fmt.Sprintf("predicted T1/2=%s", record.PredictedHalfLife),
+			fmt.Sprintf("log10 residual=%+.2f", record.LogResidual),
+		}})
+	}
+	views["alpha"] = screenshotViewSpec{Title: "Alpha systematics visualization", Subtitle: "Royer model predictions compared to evaluated half-lives for current seed isotopes.", Cards: alphaCards}
+
+	return views
+}
+
+func screenshotRootForView(model ui.AppModel, theme *material3.Theme, viewName string) (widget.Widget, error) {
+	view, ok := screenshotViews(model)[viewName]
+	if !ok {
+		return nil, fmt.Errorf("unknown screenshot view %q", viewName)
+	}
+	items := []widget.Widget{
+		header(model),
+		primitives.Text(view.Title).FontSize(22).Bold().Color(widget.Hex(0x183D34)),
+		primitives.Text(view.Subtitle).FontSize(13).Color(widget.Hex(0x44504B)),
+	}
+	for _, spec := range view.Cards {
+		cardItems := []widget.Widget{primitives.Text(spec.Title).FontSize(13).Bold().Color(widget.Hex(0x183D34))}
+		for _, line := range spec.Lines {
+			cardItems = append(cardItems, primitives.Text(line).FontSize(11).Color(widget.Hex(0x44504B)))
+		}
+		items = append(items, card(cardItems...))
+	}
+	return primitives.Box(items...).Padding(22).Gap(10).Background(theme.Colors.Surface), nil
 }
 
 func buildRoot(model ui.AppModel, theme *material3.Theme) widget.Widget {

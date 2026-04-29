@@ -62,6 +62,29 @@ func TestWorkbookCardSpecsSummarizeProvenanceForScreenshot(t *testing.T) {
 	}
 }
 
+func TestScreenshotViewsCoverPlannedSimulationAndVisualizationArtifacts(t *testing.T) {
+	views := screenshotViews(ui.DefaultModel())
+	want := []string{"overview", "workbook", "provenance", "roadmap", "simulation", "alpha"}
+	if got := len(views); got != len(want) {
+		t.Fatalf("screenshot view count = %d, want %d", got, len(want))
+	}
+	for _, name := range want {
+		view, ok := views[name]
+		if !ok {
+			t.Fatalf("missing screenshot view %q", name)
+		}
+		if view.Title == "" {
+			t.Fatalf("view %q missing title", name)
+		}
+		if len(view.Cards) < 2 {
+			t.Fatalf("view %q card count = %d, want at least 2", name, len(view.Cards))
+		}
+	}
+	if _, err := screenshotRootForView(ui.DefaultModel(), material3.New(widget.Hex(0x2F5D50)), "not-a-view"); err == nil {
+		t.Fatal("screenshotRootForView accepted unknown view")
+	}
+}
+
 func TestSaveScreenshotWritesNonBlankPNG(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "statera.png")
 	model := ui.DefaultModel()
