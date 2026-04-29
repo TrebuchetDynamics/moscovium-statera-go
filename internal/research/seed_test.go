@@ -59,6 +59,16 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 		want   string
 	}{
 		{
+			name:   "unsupported schema version",
+			mutate: func(seed *ResearchSeed) { seed.Schema = "moscovium-statera-go/research-seed/v2" },
+			want:   "research seed schema \"moscovium-statera-go/research-seed/v2\" unsupported, want moscovium-statera-go/research-seed/v1",
+		},
+		{
+			name:   "missing record set",
+			mutate: func(seed *ResearchSeed) { seed.Records = nil },
+			want:   "research seed records must not be empty",
+		},
+		{
 			name:   "missing citation URL",
 			mutate: func(seed *ResearchSeed) { seed.Records[0].CitationURLs = nil },
 			want:   "288Mc missing citation_urls",

@@ -8,6 +8,8 @@ import (
 	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/physics"
 )
 
+const ResearchSeedSchemaV1 = "moscovium-statera-go/research-seed/v1"
+
 type ResearchSeed struct {
 	Schema  string               `json:"schema"`
 	Notes   []string             `json:"notes"`
@@ -49,6 +51,13 @@ func (seed ResearchSeed) Clone() ResearchSeed {
 }
 
 func ValidateResearchSeedProvenance(seed ResearchSeed) error {
+	if strings.TrimSpace(seed.Schema) != ResearchSeedSchemaV1 {
+		return fmt.Errorf("research seed schema %q unsupported, want %s", seed.Schema, ResearchSeedSchemaV1)
+	}
+	if len(seed.Records) == 0 {
+		return fmt.Errorf("research seed records must not be empty")
+	}
+
 	seenIDs := map[string]bool{}
 	for _, record := range seed.Records {
 		nuclide, err := physics.ParseNuclideID(record.ID)
