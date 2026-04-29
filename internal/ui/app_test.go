@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/physics"
+	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/research"
 )
 
 func TestDefaultSpecUsesResearchTitleAndModules(t *testing.T) {
@@ -174,6 +175,74 @@ func contains(values []string, want string) bool {
 		}
 	}
 	return false
+}
+
+func TestWorkbookUIRecordsPreserveCountsAndEvidence(t *testing.T) {
+	records := WorkbookUIRecordsFromResearch([]research.WorkbookRecord{
+		{
+			ID:            "288Mc",
+			Element:       "Moscovium",
+			Symbol:        "Mc",
+			Z:             115,
+			A:             288,
+			N:             173,
+			Daughter:      "284Nh",
+			EvidenceLevel: "ENSDF evaluated nuclear data plus peer-reviewed DOI trail",
+			SourcePath:    "data/research.seed.json",
+			CitationURLs:  []string{"https://example.invalid/citation-a", "https://example.invalid/citation-b"},
+			DOIs:          []string{"10.1103/PhysRevC.106.L031301", "10.1016/j.nuclphysa.2003.11.001"},
+		},
+	})
+
+	if got, want := len(records), 1; got != want {
+		t.Fatalf("workbook UI record count = %d, want %d", got, want)
+	}
+	record := records[0]
+	if record.ID != "288Mc" || record.Element != "Moscovium" || record.Symbol != "Mc" {
+		t.Fatalf("identity fields not preserved: %+v", record)
+	}
+	if record.Z != 115 || record.A != 288 || record.N != 173 {
+		t.Fatalf("nuclide counts not preserved: Z=%d A=%d N=%d", record.Z, record.A, record.N)
+	}
+	if record.Daughter != "284Nh" {
+		t.Fatalf("Daughter = %q, want 284Nh", record.Daughter)
+	}
+	if record.CitationCount != 2 {
+		t.Fatalf("CitationCount = %d, want 2", record.CitationCount)
+	}
+	if record.DOICount != 2 {
+		t.Fatalf("DOICount = %d, want 2", record.DOICount)
+	}
+	if record.SourcePath != "data/research.seed.json" {
+		t.Fatalf("SourcePath = %q, want data/research.seed.json", record.SourcePath)
+	}
+	if record.EvidenceClass != "ENSDF evaluated nuclear data plus peer-reviewed DOI trail" {
+		t.Fatalf("EvidenceClass = %q", record.EvidenceClass)
+	}
+}
+
+func TestDefaultModelExposesWorkbookRecords(t *testing.T) {
+	model := DefaultModel()
+	if got, want := len(model.Workbook), 2; got != want {
+		t.Fatalf("Workbook count = %d, want %d", got, want)
+	}
+	for _, record := range model.Workbook {
+		if record.ID == "" {
+			t.Fatal("workbook record missing ID")
+		}
+		if record.CitationCount == 0 {
+			t.Fatalf("%s CitationCount = 0, want nonzero", record.ID)
+		}
+		if record.DOICount == 0 {
+			t.Fatalf("%s DOICount = 0, want nonzero", record.ID)
+		}
+		if record.SourcePath != "data/research.seed.json" {
+			t.Fatalf("%s SourcePath = %q, want data/research.seed.json", record.ID, record.SourcePath)
+		}
+		if record.EvidenceClass == "" {
+			t.Fatalf("%s missing EvidenceClass", record.ID)
+		}
+	}
 }
 
 func TestDefaultModelExposesAlphaSystematicsRecords(t *testing.T) {

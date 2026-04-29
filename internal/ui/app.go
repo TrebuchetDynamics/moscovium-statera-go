@@ -1,10 +1,13 @@
 package ui
 
 import (
+	"encoding/json"
 	"math"
+	"os"
 	"time"
 
 	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/physics"
+	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/research"
 )
 
 type ModuleSpec struct {
@@ -31,6 +34,7 @@ type AppModel struct {
 	DesignScenarios  []DesignScenario
 	ContextRecords   []ContextRecord
 	AlphaSystematics []AlphaSystematicsRecord
+	Workbook         []WorkbookUIRecord
 }
 
 type ViewSpec struct {
@@ -54,6 +58,20 @@ type IsotopeRecord struct {
 	Daughter      string
 	CitationCount int
 	SourcePath    string
+}
+
+type WorkbookUIRecord struct {
+	ID            string
+	Element       string
+	Symbol        string
+	Z             int
+	A             int
+	N             int
+	Daughter      string
+	CitationCount int
+	DOICount      int
+	SourcePath    string
+	EvidenceClass string
 }
 
 type ClaimExample struct {
@@ -164,6 +182,7 @@ func DefaultModel() AppModel {
 	claimExamples := defaultClaimExamples(catalog)
 	designScenarios := defaultDesignScenarios(catalog)
 	alphaSystematics := defaultAlphaSystematicsRecords(catalog)
+	workbook := defaultWorkbookUIRecords()
 
 	return AppModel{
 		Spec:  spec,
@@ -183,6 +202,7 @@ func DefaultModel() AppModel {
 		DesignScenarios:  designScenarios,
 		ContextRecords:   contextRecords,
 		AlphaSystematics: alphaSystematics,
+		Workbook:         workbook,
 	}
 }
 
@@ -408,6 +428,45 @@ func defaultDesignScenarios(catalog physics.Catalog) []DesignScenario {
 		})
 	}
 	return records
+}
+
+func WorkbookUIRecordsFromResearch(records []research.WorkbookRecord) []WorkbookUIRecord {
+	uiRecords := make([]WorkbookUIRecord, 0, len(records))
+	for _, record := range records {
+		uiRecords = append(uiRecords, WorkbookUIRecord{
+			ID:            record.ID,
+			Element:       record.Element,
+			Symbol:        record.Symbol,
+			Z:             record.Z,
+			A:             record.A,
+			N:             record.N,
+			Daughter:      record.Daughter,
+			CitationCount: len(record.CitationURLs),
+			DOICount:      len(record.DOIs),
+			SourcePath:    record.SourcePath,
+			EvidenceClass: record.EvidenceLevel,
+		})
+	}
+	return uiRecords
+}
+
+func defaultWorkbookUIRecords() []WorkbookUIRecord {
+	for _, seedPath := range []string{"data/research.seed.json", "../../data/research.seed.json"} {
+		raw, err := os.ReadFile(seedPath)
+		if err != nil {
+			continue
+		}
+		var seed research.ResearchSeed
+		if err := json.Unmarshal(raw, &seed); err != nil {
+			continue
+		}
+		workbook, err := research.WorkbookFromSeed(seed, "data/research.seed.json")
+		if err != nil {
+			continue
+		}
+		return WorkbookUIRecordsFromResearch(workbook)
+	}
+	return nil
 }
 
 func defaultSourceRecords() []SourceRecord {
