@@ -158,6 +158,7 @@ func buildRoot(model ui.AppModel, theme *material3.Theme) widget.Widget {
 		header(model),
 		moduleOverview(model),
 		educationSection(model, theme),
+		workbookSection(model, theme),
 		researchSection(model, theme),
 		designSection(model, theme),
 		alphaSystematicsSection(model, theme),
@@ -230,6 +231,42 @@ func educationSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
 		))
 	}
 	return section("Education", children, theme)
+}
+
+func workbookSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
+	children := []widget.Widget{
+		primitives.Text("Evaluated isotope workbook").FontSize(14).Bold().Color(widget.Hex(0x24483E)),
+		boundary("Workbook rows are derived from validated research seed records; they add no daughter placeholders or new scientific values."),
+	}
+	for _, spec := range workbookCardSpecs(model) {
+		children = append(children, card(
+			primitives.Text(spec.ID).FontSize(13).Bold(),
+			primitives.Text(spec.Identity).FontSize(11).Color(widget.Hex(0x44504B)),
+			primitives.Text(spec.Provenance).FontSize(10).Color(widget.Hex(0x31574D)),
+			primitives.Text(spec.EvidenceClass).FontSize(10).Color(widget.Hex(0x5F6F68)),
+		))
+	}
+	return section("Workbook", children, theme)
+}
+
+type workbookCardSpec struct {
+	ID            string
+	Identity      string
+	Provenance    string
+	EvidenceClass string
+}
+
+func workbookCardSpecs(model ui.AppModel) []workbookCardSpec {
+	cards := make([]workbookCardSpec, 0, len(model.Workbook))
+	for _, record := range model.Workbook {
+		cards = append(cards, workbookCardSpec{
+			ID:            record.ID,
+			Identity:      fmt.Sprintf("%s (%s): Z=%d A=%d N=%d daughter=%s", record.Element, record.Symbol, record.Z, record.A, record.N, record.Daughter),
+			Provenance:    fmt.Sprintf("citations=%d DOIs=%d source=%s", record.CitationCount, record.DOICount, record.SourcePath),
+			EvidenceClass: fmt.Sprintf("evidence=%s", record.EvidenceClass),
+		})
+	}
+	return cards
 }
 
 func researchSection(model ui.AppModel, theme *material3.Theme) widget.Widget {

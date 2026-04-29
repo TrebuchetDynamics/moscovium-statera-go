@@ -35,6 +35,33 @@ func TestDemoSummaryRowsGroupCardsForScreenshotReadability(t *testing.T) {
 	}
 }
 
+func TestWorkbookCardSpecsSummarizeProvenanceForScreenshot(t *testing.T) {
+	cards := workbookCardSpecs(ui.DefaultModel())
+	if got, want := len(cards), 2; got != want {
+		t.Fatalf("workbook card count = %d, want %d", got, want)
+	}
+	for _, card := range cards {
+		if card.ID == "" {
+			t.Fatal("workbook card missing ID")
+		}
+		if card.Identity == "" {
+			t.Fatalf("workbook card %q missing identity summary", card.ID)
+		}
+		if !strings.Contains(card.Provenance, "citations=") {
+			t.Fatalf("workbook card %q provenance = %q, want citation count", card.ID, card.Provenance)
+		}
+		if !strings.Contains(card.Provenance, "DOIs=") {
+			t.Fatalf("workbook card %q provenance = %q, want DOI count", card.ID, card.Provenance)
+		}
+		if !strings.Contains(card.Provenance, "source=data/research.seed.json") {
+			t.Fatalf("workbook card %q provenance = %q, want source path", card.ID, card.Provenance)
+		}
+		if card.EvidenceClass == "" {
+			t.Fatalf("workbook card %q missing evidence class", card.ID)
+		}
+	}
+}
+
 func TestSaveScreenshotWritesNonBlankPNG(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "statera.png")
 	model := ui.DefaultModel()
