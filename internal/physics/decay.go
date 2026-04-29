@@ -3,6 +3,9 @@ package physics
 import (
 	"errors"
 	"fmt"
+	"math"
+	"math/rand"
+	"sort"
 	"strings"
 	"time"
 )
@@ -67,6 +70,30 @@ func ValidateCatalog(catalog Catalog) error {
 	return nil
 }
 
+type SimulationOptions struct {
+	Samples int   `json:"samples"`
+	Seed    int64 `json:"seed"`
+}
+
+type DecaySimulationRecord struct {
+	ID                      string  `json:"id"`
+	SourcePath              string  `json:"source_path"`
+	HalfLifeSeconds         float64 `json:"half_life_seconds"`
+	DecayConstantPerSecond  float64 `json:"decay_constant_per_second"`
+	MeanLifeSeconds         float64 `json:"mean_life_seconds"`
+	MonteCarloP05Seconds    float64 `json:"monte_carlo_p05_seconds"`
+	MonteCarloMedianSeconds float64 `json:"monte_carlo_median_seconds"`
+	MonteCarloP95Seconds    float64 `json:"monte_carlo_p95_seconds"`
+}
+
+type DecaySimulationReport struct {
+	StartID     string                  `json:"start_id"`
+	Method      string                  `json:"method"`
+	SampleCount int                     `json:"sample_count"`
+	Seed        int64                   `json:"seed"`
+	Records     []DecaySimulationRecord `json:"records"`
+}
+
 func DecayChain(start string, catalog Catalog) ([]Isotope, error) {
 	if start == "" {
 		return nil, errors.New("start isotope is required")
@@ -78,6 +105,75 @@ func DecayChain(start string, catalog Catalog) ([]Isotope, error) {
 		return nil, err
 	}
 	return chain, nil
+}
+
+func DecaySimulationSummary(start string, catalog Catalog, options SimulationOptions) (DecaySimulationReport, error) {
+	if options.Samples <= 0 {
+		return DecaySimulationReport{}, errors.New("simulation sample count must be positive")
+	}
+	if options.Seed == 0 {
+		return DecaySimulationReport{}, errors.New("simulation seed must be non-zero")
+	}
+	chain, err := DecayChain(start, catalog)
+	if err != nil {
+		return DecaySimulationReport{}, err
+	}
+
+	rng := rand.New(rand.NewSource(options.Seed))
+	report := DecaySimulationReport{
+		StartID:     start,
+		Method:      "exponential_decay_fixed_seed",
+		SampleCount: options.Samples,
+		Seed:        options.Seed,
+		Records:     make([]DecaySimulationRecord, 0, len(chain)),
+	}
+	for _, isotope := range chain {
+		halfLifeSeconds := isotope.HalfLife.Seconds()
+		if halfLifeSeconds <= 0 {
+			return DecaySimulationReport{}, fmt.Errorf("%s half-life must be positive for decay simulation", isotope.ID())
+		}
+		lambda := math.Ln2 / halfLifeSeconds
+		meanLife := 1 / lambda
+		samples := exponentialDecaySamples(rng, meanLife, options.Samples)
+		report.Records = append(report.Records, DecaySimulationRecord{
+			ID:                      isotope.ID(),
+			SourcePath:              isotope.CitationLink,
+			HalfLifeSeconds:         halfLifeSeconds,
+			DecayConstantPerSecond:  lambda,
+			MeanLifeSeconds:         meanLife,
+			MonteCarloP05Seconds:    quantile(samples, 0.05),
+			MonteCarloMedianSeconds: quantile(samples, 0.50),
+			MonteCarloP95Seconds:    quantile(samples, 0.95),
+		})
+	}
+	return report, nil
+}
+
+func exponentialDecaySamples(rng *rand.Rand, meanLife float64, count int) []float64 {
+	samples := make([]float64, count)
+	for i := range samples {
+		u := rng.Float64()
+		for u <= 0 {
+			u = rng.Float64()
+		}
+		samples[i] = -meanLife * math.Log(1-u)
+	}
+	sort.Float64s(samples)
+	return samples
+}
+
+func quantile(sortedSamples []float64, q float64) float64 {
+	if len(sortedSamples) == 0 {
+		return 0
+	}
+	index := int(math.Round(q * float64(len(sortedSamples)-1)))
+	if index < 0 {
+		index = 0
+	}
+	if index >= len(sortedSamples) {
+		index = len(sortedSamples) - 1
+	}
+	return sortedSamples[index]
 }
 
 func traverse(id string, parent string, catalog Catalog, visited map[string]bool, path []string, chain *[]Isotope) error {

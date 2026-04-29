@@ -202,3 +202,82 @@ func TestDecayChainReportsCyclePath(t *testing.T) {
 		t.Fatalf("error = %q, want cycle path", err)
 	}
 }
+
+func TestDecaySimulationSummaryComputesSourceBackedMetricsAndDeterministicSamples(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 288, HalfLife: 170 * time.Millisecond, QAlphaMeV: 10.75, Daughter: "284Nh", CitationLink: "https://www.nndc.bnl.gov/ensnds/288/Mc/adopted.pdf"},
+		"284Nh": {Symbol: "Nh", Z: 113, A: 284, HalfLife: 1 * time.Second, Daughter: "280Rg", CitationLink: "data/research.seed.json"},
+		"280Rg": {Symbol: "Rg", Z: 111, A: 280, HalfLife: 1 * time.Second, CitationLink: "data/research.seed.json"},
+	}
+
+	summary, err := DecaySimulationSummary("288Mc", catalog, SimulationOptions{Samples: 5, Seed: 20260429})
+	if err != nil {
+		t.Fatalf("DecaySimulationSummary returned error: %v", err)
+	}
+	if summary.StartID != "288Mc" || summary.SampleCount != 5 || summary.Seed != 20260429 {
+		t.Fatalf("summary metadata = start %q samples %d seed %d", summary.StartID, summary.SampleCount, summary.Seed)
+	}
+	if summary.Method != "exponential_decay_fixed_seed" {
+		t.Fatalf("method = %q, want exponential_decay_fixed_seed", summary.Method)
+	}
+	if got, want := len(summary.Records), 3; got != want {
+		t.Fatalf("record count = %d, want %d", got, want)
+	}
+	first := summary.Records[0]
+	if first.ID != "288Mc" || first.SourcePath != "https://www.nndc.bnl.gov/ensnds/288/Mc/adopted.pdf" {
+		t.Fatalf("first record identity/source = %+v", first)
+	}
+	if !almostEqual(first.DecayConstantPerSecond, 4.077336, 0.000001) {
+		t.Fatalf("lambda = %.9f, want about 4.077336", first.DecayConstantPerSecond)
+	}
+	if !almostEqual(first.MeanLifeSeconds, 0.245258, 0.000001) {
+		t.Fatalf("mean life = %.9f, want about 0.245258", first.MeanLifeSeconds)
+	}
+	if first.MonteCarloP05Seconds <= 0 || first.MonteCarloMedianSeconds <= 0 || first.MonteCarloP95Seconds <= 0 {
+		t.Fatalf("Monte Carlo quantiles must be positive: %+v", first)
+	}
+	if first.MonteCarloP05Seconds > first.MonteCarloMedianSeconds || first.MonteCarloMedianSeconds > first.MonteCarloP95Seconds {
+		t.Fatalf("Monte Carlo quantiles are not ordered: %+v", first)
+	}
+
+	repeat, err := DecaySimulationSummary("288Mc", catalog, SimulationOptions{Samples: 5, Seed: 20260429})
+	if err != nil {
+		t.Fatalf("repeat DecaySimulationSummary returned error: %v", err)
+	}
+	if !reflect.DeepEqual(summary, repeat) {
+		t.Fatalf("fixed-seed summary is not deterministic\nfirst:  %+v\nsecond: %+v", summary, repeat)
+	}
+}
+
+func TestDecaySimulationSummaryRejectsInvalidSimulationInputs(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 288, HalfLife: 170 * time.Millisecond, CitationLink: "seed"},
+	}
+	for _, tc := range []struct {
+		name    string
+		catalog Catalog
+		options SimulationOptions
+		want    string
+	}{
+		{name: "zero samples", catalog: catalog, options: SimulationOptions{Samples: 0, Seed: 1}, want: "simulation sample count must be positive"},
+		{name: "zero seed", catalog: catalog, options: SimulationOptions{Samples: 1}, want: "simulation seed must be non-zero"},
+		{name: "missing half life", catalog: Catalog{"288Mc": {Symbol: "Mc", Z: 115, A: 288, CitationLink: "seed"}}, options: SimulationOptions{Samples: 1, Seed: 1}, want: "288Mc half-life must be positive for decay simulation"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := DecaySimulationSummary("288Mc", tc.catalog, tc.options)
+			if err == nil {
+				t.Fatal("DecaySimulationSummary returned nil error")
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %q, want %q", err, tc.want)
+			}
+		})
+	}
+}
+
+func almostEqual(got, want, tolerance float64) bool {
+	if got > want {
+		return got-want <= tolerance
+	}
+	return want-got <= tolerance
+}
