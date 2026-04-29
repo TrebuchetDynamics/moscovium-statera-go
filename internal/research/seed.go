@@ -112,22 +112,34 @@ func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 		if err := validateAlphaDaughter(record); err != nil {
 			return err
 		}
-		if strings.TrimSpace(record.EvidenceLevel) == "" {
+		evidenceLevel := strings.TrimSpace(record.EvidenceLevel)
+		if record.EvidenceLevel == "" {
 			return fmt.Errorf("%s missing evidence_level", record.ID)
+		}
+		if evidenceLevel == "" {
+			return fmt.Errorf("%s evidence_level must not be blank", record.ID)
 		}
 		if len(record.CitationURLs) == 0 {
 			return fmt.Errorf("%s missing citation_urls", record.ID)
 		}
-		for _, citationURL := range record.CitationURLs {
-			if !strings.HasPrefix(strings.TrimSpace(citationURL), "https://") {
+		for i, citationURL := range record.CitationURLs {
+			trimmedCitationURL := strings.TrimSpace(citationURL)
+			if trimmedCitationURL == "" {
+				return fmt.Errorf("%s citation_urls[%d] must not be blank", record.ID, i)
+			}
+			if !strings.HasPrefix(trimmedCitationURL, "https://") {
 				return fmt.Errorf("%s citation URL %q must use https://", record.ID, citationURL)
 			}
 		}
 		if len(record.DOIs) == 0 {
 			return fmt.Errorf("%s missing DOI trail", record.ID)
 		}
-		for _, doi := range record.DOIs {
-			if !strings.HasPrefix(strings.TrimSpace(doi), "10.") || strings.ContainsAny(strings.TrimSpace(doi), " \t\n\r") {
+		for i, doi := range record.DOIs {
+			trimmedDOI := strings.TrimSpace(doi)
+			if trimmedDOI == "" {
+				return fmt.Errorf("%s dois[%d] must not be blank", record.ID, i)
+			}
+			if !strings.HasPrefix(trimmedDOI, "10.") || strings.ContainsAny(trimmedDOI, " \t\n\r") {
 				return fmt.Errorf("%s DOI %q must be a DOI string beginning with 10. and containing no whitespace", record.ID, doi)
 			}
 		}
