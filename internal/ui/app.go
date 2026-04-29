@@ -23,18 +23,19 @@ type Spec struct {
 }
 
 type AppModel struct {
-	Spec             Spec
-	Views            []ViewSpec
-	Summary          Summary
-	Isotopes         []IsotopeRecord
-	ClaimExamples    []ClaimExample
-	SourceRecords    []SourceRecord
-	EducationLessons []LessonRecord
-	ResearchItems    []ResearchItem
-	DesignScenarios  []DesignScenario
-	ContextRecords   []ContextRecord
-	AlphaSystematics []AlphaSystematicsRecord
-	Workbook         []WorkbookUIRecord
+	Spec              Spec
+	Views             []ViewSpec
+	Summary           Summary
+	Isotopes          []IsotopeRecord
+	ClaimExamples     []ClaimExample
+	SourceRecords     []SourceRecord
+	EducationLessons  []LessonRecord
+	ResearchItems     []ResearchItem
+	DesignScenarios   []DesignScenario
+	ContextRecords    []ContextRecord
+	AlphaSystematics  []AlphaSystematicsRecord
+	Workbook          []WorkbookUIRecord
+	ProvenanceSummary string
 }
 
 type ViewSpec struct {
@@ -194,15 +195,16 @@ func DefaultModel() AppModel {
 			DecayChain:       decayChain,
 			BoundaryNotice:   "Track B context is excluded from simulation and cannot seed physics defaults.",
 		},
-		Isotopes:         isotopes,
-		ClaimExamples:    claimExamples,
-		SourceRecords:    sourceRecords,
-		EducationLessons: defaultEducationLessons(),
-		ResearchItems:    researchItems,
-		DesignScenarios:  designScenarios,
-		ContextRecords:   contextRecords,
-		AlphaSystematics: alphaSystematics,
-		Workbook:         workbook,
+		Isotopes:          isotopes,
+		ClaimExamples:     claimExamples,
+		SourceRecords:     sourceRecords,
+		EducationLessons:  defaultEducationLessons(),
+		ResearchItems:     researchItems,
+		DesignScenarios:   designScenarios,
+		ContextRecords:    contextRecords,
+		AlphaSystematics:  alphaSystematics,
+		Workbook:          workbook,
+		ProvenanceSummary: defaultProvenanceSummary(),
 	}
 }
 
@@ -467,6 +469,48 @@ func defaultWorkbookUIRecords() []WorkbookUIRecord {
 		return WorkbookUIRecordsFromResearch(workbook)
 	}
 	return nil
+}
+
+func defaultProvenanceSummary() string {
+	for _, seedPath := range []string{"data/research.seed.json", "../../data/research.seed.json"} {
+		raw, err := os.ReadFile(seedPath)
+		if err != nil {
+			continue
+		}
+		var seed research.ResearchSeed
+		if err := json.Unmarshal(raw, &seed); err != nil {
+			continue
+		}
+		workbook, err := research.WorkbookFromSeed(seed, "data/research.seed.json")
+		if err != nil {
+			continue
+		}
+		graph, err := research.ProvenanceGraphFromWorkbook(workbook, defaultBlockedSources())
+		if err != nil {
+			continue
+		}
+		return graph.TextSummary()
+	}
+	return ""
+}
+
+func defaultBlockedSources() []research.BlockedSource {
+	return []research.BlockedSource{
+		{
+			Key:        "royer2008alphaAnalytic",
+			Title:      "Recent alpha decay half-lives and analytic expression predictions including superheavy nuclei",
+			DOI:        "10.1103/PhysRevC.77.037602",
+			SourcePath: "citations/papers/royer2008alpha-analytic.md",
+			Reason:     "APS article/PDF content unavailable in prior source triage; coefficients must not be changed from metadata alone",
+		},
+		{
+			Key:        "wang2015alphaSystematics",
+			Title:      "Systematic study of alpha-decay energies and half-lives of superheavy nuclei",
+			DOI:        "10.1103/PhysRevC.92.064301",
+			SourcePath: "citations/papers/wang2015alpha-systematics.md",
+			Reason:     "APS article/PDF content unavailable in prior source triage; second-model formulas must not be added from metadata alone",
+		},
+	}
 }
 
 func defaultSourceRecords() []SourceRecord {

@@ -245,6 +245,25 @@ func TestDefaultModelExposesWorkbookRecords(t *testing.T) {
 	}
 }
 
+func TestDefaultModelExposesProvenanceGraphTextSummary(t *testing.T) {
+	model := DefaultModel()
+	for _, want := range []string{
+		"provenance_graph",
+		"nodes=17",
+		"edges=14",
+		"isotopes=2",
+		"doi_nodes=6",
+		"citation_url_nodes=4",
+		"blocked_source_nodes=2",
+		"orphans=0",
+		"blocked_sources=royer2008alphaAnalytic,wang2015alphaSystematics",
+	} {
+		if !strings.Contains(model.ProvenanceSummary, want) {
+			t.Fatalf("ProvenanceSummary = %q, want substring %q", model.ProvenanceSummary, want)
+		}
+	}
+}
+
 func TestDefaultModelExposesAlphaSystematicsRecords(t *testing.T) {
 	model := DefaultModel()
 
