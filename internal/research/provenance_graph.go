@@ -133,7 +133,50 @@ func ProvenanceGraphFromWorkbook(records []WorkbookRecord, blockedSources []Bloc
 			graph.AddEdge(GraphEdge{From: blockedID, To: sourcePathID, Type: EdgeDocumentedAtSourcePath})
 		}
 	}
+	if err := ValidateProvenanceGraphIntegrity(graph); err != nil {
+		return ProvenanceGraph{}, err
+	}
 	return graph, nil
+}
+
+func ValidateProvenanceGraphIntegrity(graph ProvenanceGraph) error {
+	for id, node := range graph.Nodes {
+		if strings.TrimSpace(id) == "" {
+			return fmt.Errorf("graph node ID must not be blank")
+		}
+		if strings.TrimSpace(node.ID) == "" {
+			return fmt.Errorf("graph node %s stored record has blank ID", id)
+		}
+		if node.ID != id {
+			return fmt.Errorf("graph node key %s does not match stored ID %s", id, node.ID)
+		}
+		if strings.TrimSpace(string(node.Type)) == "" {
+			return fmt.Errorf("graph node %s missing type", id)
+		}
+	}
+	seenEdges := map[string]bool{}
+	for _, edge := range graph.Edges {
+		from := strings.TrimSpace(edge.From)
+		to := strings.TrimSpace(edge.To)
+		if from == "" || to == "" {
+			return fmt.Errorf("graph edge endpoints must not be blank")
+		}
+		if strings.TrimSpace(string(edge.Type)) == "" {
+			return fmt.Errorf("graph edge %s -> %s missing type", from, to)
+		}
+		if !graph.HasNode(from) {
+			return fmt.Errorf("graph edge %s -> %s missing from node %s", from, to, from)
+		}
+		if !graph.HasNode(to) {
+			return fmt.Errorf("graph edge %s -> %s missing to node %s", from, to, to)
+		}
+		key := from + "\x00" + to + "\x00" + string(edge.Type)
+		if seenEdges[key] {
+			return fmt.Errorf("duplicate graph edge %s -> %s type %s", from, to, edge.Type)
+		}
+		seenEdges[key] = true
+	}
+	return nil
 }
 
 func (graph ProvenanceGraph) AddNode(node GraphNode) {

@@ -149,6 +149,34 @@ func TestProvenanceGraphReportsOrphans(t *testing.T) {
 	}
 }
 
+func TestValidateProvenanceGraphIntegrityRejectsDuplicateEdgesAndMissingNodes(t *testing.T) {
+	valid, err := ProvenanceGraphFromWorkbook(validWorkbookRecords(t), DefaultBlockedSources())
+	if err != nil {
+		t.Fatalf("ProvenanceGraphFromWorkbook returned error: %v", err)
+	}
+	if err := ValidateProvenanceGraphIntegrity(valid); err != nil {
+		t.Fatalf("valid provenance graph rejected: %v", err)
+	}
+
+	duplicateEdge := valid
+	duplicateEdge.Edges = append(append([]GraphEdge{}, valid.Edges...), valid.Edges[0])
+	if err := ValidateProvenanceGraphIntegrity(duplicateEdge); err == nil || !strings.Contains(err.Error(), "duplicate graph edge") {
+		t.Fatalf("duplicate edge validation error = %v, want duplicate graph edge", err)
+	}
+
+	missingFrom := valid
+	missingFrom.Edges = append(append([]GraphEdge{}, valid.Edges...), GraphEdge{From: "isotope:999Xx", To: "doi:10.1103/PhysRevC.77.037602", Type: EdgeSupportedByDOI})
+	if err := ValidateProvenanceGraphIntegrity(missingFrom); err == nil || !strings.Contains(err.Error(), "missing from node isotope:999Xx") {
+		t.Fatalf("missing-from validation error = %v, want missing from node", err)
+	}
+
+	missingTo := valid
+	missingTo.Edges = append(append([]GraphEdge{}, valid.Edges...), GraphEdge{From: "isotope:288Mc", To: "doi:10.0000/missing", Type: EdgeSupportedByDOI})
+	if err := ValidateProvenanceGraphIntegrity(missingTo); err == nil || !strings.Contains(err.Error(), "missing to node doi:10.0000/missing") {
+		t.Fatalf("missing-to validation error = %v, want missing to node", err)
+	}
+}
+
 func TestProvenanceGraphNodeTableRowsExposeDeterministicAuditFields(t *testing.T) {
 	graph, err := ProvenanceGraphFromWorkbook(validWorkbookRecords(t), []BlockedSource{
 		{Key: "royer2008alphaAnalytic", Title: "Royer 2008", DOI: "10.1103/PhysRevC.77.037602", SourcePath: "citations/papers/royer2008alpha-analytic.md", Reason: "APS article/PDF content unavailable; coefficients must not be changed from metadata alone"},
