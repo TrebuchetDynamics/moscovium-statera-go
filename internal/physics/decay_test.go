@@ -92,6 +92,21 @@ func TestDecayChainReportsMissingDaughterParent(t *testing.T) {
 	}
 }
 
+func TestDecayChainRejectsNonAlphaDaughterTransition(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 288, Daughter: "285Nh", CitationLink: "seed"},
+		"285Nh": {Symbol: "Nh", Z: 113, A: 285, CitationLink: "seed"},
+	}
+
+	_, err := DecayChain("288Mc", catalog)
+	if err == nil {
+		t.Fatal("DecayChain returned nil error for non-alpha daughter transition")
+	}
+	if !strings.Contains(err.Error(), "288Mc alpha daughter 285Nh has A=285, want 284") {
+		t.Fatalf("error = %q, want alpha daughter mass mismatch", err)
+	}
+}
+
 func TestDecayChainReportsCyclePath(t *testing.T) {
 	catalog := Catalog{
 		"288Mc": {Symbol: "Mc", Z: 115, A: 288, Daughter: "284Nh", CitationLink: "seed"},

@@ -84,6 +84,11 @@ func traverse(id string, parent string, catalog Catalog, visited map[string]bool
 	if isotope.Daughter == "" {
 		return nil
 	}
+	if !visited[isotope.Daughter] {
+		if err := ValidateAlphaDaughterID(id, isotope.Daughter); err != nil {
+			return err
+		}
+	}
 	return traverse(isotope.Daughter, id, catalog, visited, path, chain)
 }
 
