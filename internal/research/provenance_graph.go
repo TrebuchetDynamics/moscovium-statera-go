@@ -54,6 +54,29 @@ type BlockedSource struct {
 	Reason     string
 }
 
+var defaultBlockedSources = []BlockedSource{
+	{
+		Key:        "royer2008alphaAnalytic",
+		Title:      "Recent alpha decay half-lives and analytic expression predictions including superheavy nuclei",
+		DOI:        "10.1103/PhysRevC.77.037602",
+		SourcePath: "citations/papers/royer2008alpha-analytic.md",
+		Reason:     "APS article/PDF content unavailable in prior source triage; coefficients must not be changed from metadata alone",
+	},
+	{
+		Key:        "wang2015alphaSystematics",
+		Title:      "Systematic study of alpha-decay energies and half-lives of superheavy nuclei",
+		DOI:        "10.1103/PhysRevC.92.064301",
+		SourcePath: "citations/papers/wang2015alpha-systematics.md",
+		Reason:     "APS article/PDF content unavailable in prior source triage; second-model formulas must not be added from metadata alone",
+	},
+}
+
+func DefaultBlockedSources() []BlockedSource {
+	blocked := make([]BlockedSource, len(defaultBlockedSources))
+	copy(blocked, defaultBlockedSources)
+	return blocked
+}
+
 type ProvenanceNodeTableRow struct {
 	NodeID        string
 	NodeType      GraphNodeType

@@ -40,23 +40,37 @@ func TestProvenanceGraphFromWorkbookBuildsEvidenceEdges(t *testing.T) {
 	}
 }
 
-func TestProvenanceGraphIncludesBlockedSourceNodes(t *testing.T) {
-	blocked := []BlockedSource{
-		{
-			Key:        "royer2008alphaAnalytic",
-			Title:      "Recent alpha decay half-lives and analytic expression predictions including superheavy nuclei",
-			DOI:        "10.1103/PhysRevC.77.037602",
-			SourcePath: "citations/papers/royer2008alpha-analytic.md",
-			Reason:     "APS article/PDF content unavailable in prior source triage; coefficients must not be changed from metadata alone",
-		},
-		{
-			Key:        "wang2015alphaSystematics",
-			Title:      "Systematic study of alpha-decay energies and half-lives of superheavy nuclei",
-			DOI:        "10.1103/PhysRevC.92.064301",
-			SourcePath: "citations/papers/wang2015alpha-systematics.md",
-			Reason:     "APS article/PDF content unavailable in prior source triage; second-model formulas must not be added from metadata alone",
-		},
+func TestDefaultBlockedSourcesListsCurrentSourceAccessBlockers(t *testing.T) {
+	blocked := DefaultBlockedSources()
+	if got, want := len(blocked), 2; got != want {
+		t.Fatalf("DefaultBlockedSources count = %d, want %d", got, want)
 	}
+
+	byKey := map[string]BlockedSource{}
+	for _, source := range blocked {
+		byKey[source.Key] = source
+		if strings.TrimSpace(source.Title) == "" {
+			t.Fatalf("%s missing title", source.Key)
+		}
+		if strings.TrimSpace(source.Reason) == "" || !strings.Contains(source.Reason, "must not") {
+			t.Fatalf("%s reason = %q, want source-access blocker text", source.Key, source.Reason)
+		}
+	}
+	if byKey["royer2008alphaAnalytic"].DOI != "10.1103/PhysRevC.77.037602" {
+		t.Fatalf("Royer blocked-source DOI = %q", byKey["royer2008alphaAnalytic"].DOI)
+	}
+	if byKey["wang2015alphaSystematics"].DOI != "10.1103/PhysRevC.92.064301" {
+		t.Fatalf("Wang blocked-source DOI = %q", byKey["wang2015alphaSystematics"].DOI)
+	}
+
+	blocked[0].Key = "mutated"
+	if DefaultBlockedSources()[0].Key == "mutated" {
+		t.Fatal("DefaultBlockedSources did not return a defensive slice copy")
+	}
+}
+
+func TestProvenanceGraphIncludesBlockedSourceNodes(t *testing.T) {
+	blocked := DefaultBlockedSources()
 
 	graph, err := ProvenanceGraphFromWorkbook(validWorkbookRecords(t), blocked)
 	if err != nil {
