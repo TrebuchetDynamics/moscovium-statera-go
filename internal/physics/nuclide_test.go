@@ -58,6 +58,57 @@ func TestParseNuclideIDRejectsMalformedOrUnknownIDs(t *testing.T) {
 	}
 }
 
+func TestElementsCoversExactly118UniqueChemicalElements(t *testing.T) {
+	elements := Elements()
+	if len(elements) != 118 {
+		t.Fatalf("Elements() returned %d entries, want 118", len(elements))
+	}
+
+	seenSymbols := make(map[string]bool, len(elements))
+	seenAtomicNumbers := make(map[int]bool, len(elements))
+	for _, element := range elements {
+		if element.Z < 1 || element.Z > 118 {
+			t.Fatalf("Elements() contains %s with Z=%d outside 1..118", element.Symbol, element.Z)
+		}
+		if element.Symbol == "" {
+			t.Fatalf("Elements() contains empty symbol at Z=%d", element.Z)
+		}
+		if element.Name == "" {
+			t.Fatalf("Elements() contains empty name for symbol %s", element.Symbol)
+		}
+		if seenSymbols[element.Symbol] {
+			t.Fatalf("Elements() contains duplicate symbol %s", element.Symbol)
+		}
+		if seenAtomicNumbers[element.Z] {
+			t.Fatalf("Elements() contains duplicate atomic number %d", element.Z)
+		}
+		seenSymbols[element.Symbol] = true
+		seenAtomicNumbers[element.Z] = true
+	}
+
+	spotChecks := map[string]struct {
+		z    int
+		name string
+	}{
+		"Mc": {z: 115, name: "Moscovium"},
+		"Nh": {z: 113, name: "Nihonium"},
+	}
+	for symbol, want := range spotChecks {
+		matched := false
+		for _, element := range elements {
+			if element.Symbol == symbol {
+				matched = true
+				if element.Z != want.z || element.Name != want.name {
+					t.Fatalf("Elements() %s entry = Z=%d Name=%q, want Z=%d Name=%q", symbol, element.Z, element.Name, want.z, want.name)
+				}
+			}
+		}
+		if !matched {
+			t.Fatalf("Elements() missing symbol %s", symbol)
+		}
+	}
+}
+
 func TestAtomicNumberForSymbolCoversCurrentAlphaChainSymbols(t *testing.T) {
 	cases := map[string]int{
 		"Mc": 115,
