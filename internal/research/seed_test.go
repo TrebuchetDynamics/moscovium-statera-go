@@ -69,6 +69,16 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			want:   "research seed records must not be empty",
 		},
 		{
+			name:   "blank research seed note",
+			mutate: func(seed *ResearchSeed) { seed.Notes[0] = " \t" },
+			want:   "research seed notes[0] must not be blank",
+		},
+		{
+			name:   "missing research seed notes",
+			mutate: func(seed *ResearchSeed) { seed.Notes = nil },
+			want:   "research seed notes must not be empty",
+		},
+		{
 			name:   "missing citation URL",
 			mutate: func(seed *ResearchSeed) { seed.Records[0].CitationURLs = nil },
 			want:   "288Mc missing citation_urls",

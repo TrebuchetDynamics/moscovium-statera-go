@@ -57,6 +57,14 @@ func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 	if len(seed.Records) == 0 {
 		return fmt.Errorf("research seed records must not be empty")
 	}
+	if len(seed.Notes) == 0 {
+		return fmt.Errorf("research seed notes must not be empty")
+	}
+	for i, note := range seed.Notes {
+		if strings.TrimSpace(note) == "" {
+			return fmt.Errorf("research seed notes[%d] must not be blank", i)
+		}
+	}
 
 	seenIDs := map[string]bool{}
 	for _, record := range seed.Records {
