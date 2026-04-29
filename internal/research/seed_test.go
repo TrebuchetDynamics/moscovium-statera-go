@@ -88,6 +88,26 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			mutate: func(seed *ResearchSeed) { seed.Records[0].N = seed.Records[0].A - seed.Records[0].Z + 1 },
 			want:   "288Mc has N=174, want A-Z=173",
 		},
+		{
+			name:   "non-positive half-life",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].HalfLifeSeconds = 0 },
+			want:   "288Mc half_life_seconds must be positive",
+		},
+		{
+			name:   "non-positive Q alpha",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].QAlphaMeV = 0 },
+			want:   "288Mc q_alpha_mev must be positive",
+		},
+		{
+			name:   "negative Q alpha uncertainty",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].QAlphaUncertaintyMeV = -0.01 },
+			want:   "288Mc q_alpha_uncertainty_mev must be non-negative",
+		},
+		{
+			name:   "unsupported decay mode",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].DecayMode = "" },
+			want:   "288Mc decay_mode must be alpha",
+		},
 	}
 
 	for _, tc := range cases {

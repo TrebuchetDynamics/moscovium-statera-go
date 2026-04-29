@@ -54,6 +54,18 @@ func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 		if record.N != record.A-record.Z {
 			return fmt.Errorf("%s has N=%d, want A-Z=%d", record.ID, record.N, record.A-record.Z)
 		}
+		if record.HalfLifeSeconds <= 0 {
+			return fmt.Errorf("%s half_life_seconds must be positive", record.ID)
+		}
+		if record.QAlphaMeV <= 0 {
+			return fmt.Errorf("%s q_alpha_mev must be positive", record.ID)
+		}
+		if record.QAlphaUncertaintyMeV < 0 {
+			return fmt.Errorf("%s q_alpha_uncertainty_mev must be non-negative", record.ID)
+		}
+		if strings.TrimSpace(record.DecayMode) != "alpha" {
+			return fmt.Errorf("%s decay_mode must be alpha", record.ID)
+		}
 		if strings.TrimSpace(record.EvidenceLevel) == "" {
 			return fmt.Errorf("%s missing evidence_level", record.ID)
 		}
