@@ -130,11 +130,16 @@ func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 		if len(record.CitationURLs) == 0 {
 			return fmt.Errorf("%s missing citation_urls", record.ID)
 		}
+		seenCitationURLs := map[string]bool{}
 		for i, citationURL := range record.CitationURLs {
 			trimmedCitationURL := strings.TrimSpace(citationURL)
 			if trimmedCitationURL == "" {
 				return fmt.Errorf("%s citation_urls[%d] must not be blank", record.ID, i)
 			}
+			if seenCitationURLs[trimmedCitationURL] {
+				return fmt.Errorf("%s duplicate citation_urls entry %q", record.ID, trimmedCitationURL)
+			}
+			seenCitationURLs[trimmedCitationURL] = true
 			if !strings.HasPrefix(trimmedCitationURL, "https://") {
 				return fmt.Errorf("%s citation URL %q must use https://", record.ID, citationURL)
 			}
@@ -142,11 +147,16 @@ func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 		if len(record.DOIs) == 0 {
 			return fmt.Errorf("%s missing DOI trail", record.ID)
 		}
+		seenDOIs := map[string]bool{}
 		for i, doi := range record.DOIs {
 			trimmedDOI := strings.TrimSpace(doi)
 			if trimmedDOI == "" {
 				return fmt.Errorf("%s dois[%d] must not be blank", record.ID, i)
 			}
+			if seenDOIs[trimmedDOI] {
+				return fmt.Errorf("%s duplicate dois entry %q", record.ID, trimmedDOI)
+			}
+			seenDOIs[trimmedDOI] = true
 			if !strings.HasPrefix(trimmedDOI, "10.") || strings.ContainsAny(trimmedDOI, " \t\n\r") {
 				return fmt.Errorf("%s DOI %q must be a DOI string beginning with 10. and containing no whitespace", record.ID, doi)
 			}

@@ -89,6 +89,13 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			want:   "288Mc citation_urls[0] must not be blank",
 		},
 		{
+			name: "duplicate citation URL entry",
+			mutate: func(seed *ResearchSeed) {
+				seed.Records[0].CitationURLs = append(seed.Records[0].CitationURLs, " "+seed.Records[0].CitationURLs[0]+" ")
+			},
+			want: "288Mc duplicate citation_urls entry",
+		},
+		{
 			name:   "missing DOI",
 			mutate: func(seed *ResearchSeed) { seed.Records[0].DOIs = nil },
 			want:   "288Mc missing DOI trail",
@@ -97,6 +104,13 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			name:   "blank DOI entry",
 			mutate: func(seed *ResearchSeed) { seed.Records[0].DOIs[0] = " \n" },
 			want:   "288Mc dois[0] must not be blank",
+		},
+		{
+			name: "duplicate DOI entry",
+			mutate: func(seed *ResearchSeed) {
+				seed.Records[0].DOIs = append(seed.Records[0].DOIs, " "+seed.Records[0].DOIs[0]+" ")
+			},
+			want: "288Mc duplicate dois entry",
 		},
 		{
 			name:   "missing evidence level",
