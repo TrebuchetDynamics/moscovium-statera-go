@@ -54,6 +54,7 @@ Open audit follow-ups:
 Audit blocker log:
 
 - 2026-04-28 23:06:44 CST: Royer 2008 coefficient cross-check remains blocked by source access. Crossref metadata for DOI `10.1103/PhysRevC.77.037602` resolved title, venue, date, DOI, and DOI URL, but both APS abstract and APS PDF header requests returned HTTP `403`; local repository search found no stored Royer PDF/text beyond existing citation records and code comments. Do not update coefficient values from metadata alone; retry with legitimate article/PDF access or a stored source artifact.
+- 2026-04-28 23:41:15 CST: Wang 2015 second-model intake remains blocked by source access. DOI `10.1103/PhysRevC.92.064301` redirects through `doi.org` to APS, but `curl -L -I --max-time 20` returned HTTP `403` for the DOI target, APS abstract URL, and APS PDF URL; local repository search found only `citations/papers/wang2015alpha-systematics.md` and no stored paper/PDF text. Do not intake model formulas or coefficients from metadata alone; retry with legitimate article/PDF access or a stored source artifact.
 
 ## References To Intake
 
