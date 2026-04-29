@@ -277,6 +277,7 @@ func buildRoot(model ui.AppModel, theme *material3.Theme) widget.Widget {
 		moduleOverview(model),
 		educationSection(model, theme),
 		workbookSection(model, theme),
+		provenanceNodeTableSection(model, theme),
 		researchSection(model, theme),
 		designSection(model, theme),
 		alphaSystematicsSection(model, theme),
@@ -401,6 +402,56 @@ func researchSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
 		))
 	}
 	return section("Research", children, theme)
+}
+
+type provenanceNodeTableSpec struct {
+	NodeID       string
+	NodeType     string
+	Status       string
+	SourcePath   string
+	DOIOrURL     string
+	EdgeSummary  string
+	OrphanStatus string
+}
+
+func provenanceNodeTableSpecs(model ui.AppModel) []provenanceNodeTableSpec {
+	rows := make([]provenanceNodeTableSpec, 0, len(model.ProvenanceNodes))
+	for _, node := range model.ProvenanceNodes {
+		status := node.Status
+		if status == "" {
+			status = "referenced"
+		}
+		rows = append(rows, provenanceNodeTableSpec{
+			NodeID:       node.NodeID,
+			NodeType:     node.NodeType,
+			Status:       status,
+			SourcePath:   node.SourcePath,
+			DOIOrURL:     node.DOIOrURL,
+			EdgeSummary:  fmt.Sprintf("incoming=%d outgoing=%d", node.IncomingEdges, node.OutgoingEdges),
+			OrphanStatus: fmt.Sprintf("orphan=%v", node.Orphan),
+		})
+	}
+	return rows
+}
+
+func provenanceNodeTableSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
+	children := []widget.Widget{
+		primitives.Text("Provenance graph node table").FontSize(14).Bold().Color(widget.Hex(0x24483E)),
+		boundary(model.ProvenanceSummary),
+	}
+	for _, row := range provenanceNodeTableSpecs(model) {
+		location := "source=" + row.SourcePath
+		if row.DOIOrURL != "" {
+			location = "doi_or_url=" + row.DOIOrURL
+		}
+		children = append(children, card(
+			primitives.Text(row.NodeID).FontSize(13).Bold(),
+			primitives.Text(fmt.Sprintf("type=%s status=%s", row.NodeType, row.Status)).FontSize(11).Color(widget.Hex(0x44504B)),
+			primitives.Text(location).FontSize(10).Color(widget.Hex(0x31574D)),
+			primitives.Text(fmt.Sprintf("%s %s", row.EdgeSummary, row.OrphanStatus)).FontSize(10).Color(widget.Hex(0x5F6F68)),
+		))
+	}
+	return section("Provenance Node Table", children, theme)
 }
 
 func designSection(model ui.AppModel, theme *material3.Theme) widget.Widget {

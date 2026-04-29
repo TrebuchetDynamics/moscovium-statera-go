@@ -62,6 +62,40 @@ func TestWorkbookCardSpecsSummarizeProvenanceForScreenshot(t *testing.T) {
 	}
 }
 
+func TestProvenanceNodeTableSpecsRenderAllAuditRows(t *testing.T) {
+	rows := provenanceNodeTableSpecs(ui.DefaultModel())
+	if got, want := len(rows), 17; got != want {
+		t.Fatalf("provenance node table row count = %d, want %d", got, want)
+	}
+	if got, want := rows[0].NodeID, "blocked_source:royer2008alphaAnalytic"; got != want {
+		t.Fatalf("first provenance row = %q, want %q", got, want)
+	}
+	var isotope288 provenanceNodeTableSpec
+	for _, row := range rows {
+		if row.NodeID == "isotope:288Mc" {
+			isotope288 = row
+		}
+		if row.NodeID == "" || row.NodeType == "" || row.Status == "" || row.EdgeSummary == "" || row.OrphanStatus == "" {
+			t.Fatalf("provenance row has blank audit field: %+v", row)
+		}
+	}
+	if isotope288.NodeID == "" {
+		t.Fatal("missing isotope:288Mc provenance row")
+	}
+	if isotope288.Status != "accepted" {
+		t.Fatalf("isotope:288Mc status = %q, want accepted", isotope288.Status)
+	}
+	if isotope288.SourcePath != "data/research.seed.json" {
+		t.Fatalf("isotope:288Mc source = %q, want data/research.seed.json", isotope288.SourcePath)
+	}
+	if !strings.Contains(isotope288.EdgeSummary, "incoming=0 outgoing=5") {
+		t.Fatalf("isotope:288Mc edge summary = %q, want incoming=0 outgoing=5", isotope288.EdgeSummary)
+	}
+	if isotope288.OrphanStatus != "orphan=false" {
+		t.Fatalf("isotope:288Mc orphan status = %q, want orphan=false", isotope288.OrphanStatus)
+	}
+}
+
 func TestScreenshotViewsCoverPlannedSimulationAndVisualizationArtifacts(t *testing.T) {
 	views := screenshotViews(ui.DefaultModel())
 	want := []string{"overview", "workbook", "provenance", "roadmap", "simulation", "alpha"}
