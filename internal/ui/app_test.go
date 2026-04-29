@@ -264,6 +264,31 @@ func TestDefaultModelExposesProvenanceGraphTextSummary(t *testing.T) {
 	}
 }
 
+func TestDefaultModelExposesProvenanceNodeTable(t *testing.T) {
+	model := DefaultModel()
+	if got, want := len(model.ProvenanceNodes), 17; got != want {
+		t.Fatalf("ProvenanceNodes count = %d, want %d", got, want)
+	}
+	for i := 1; i < len(model.ProvenanceNodes); i++ {
+		if model.ProvenanceNodes[i-1].NodeID > model.ProvenanceNodes[i].NodeID {
+			t.Fatalf("ProvenanceNodes not sorted at %d: %q > %q", i, model.ProvenanceNodes[i-1].NodeID, model.ProvenanceNodes[i].NodeID)
+		}
+	}
+	byID := map[string]ProvenanceNodeUIRecord{}
+	for _, row := range model.ProvenanceNodes {
+		byID[row.NodeID] = row
+	}
+
+	isotope := byID["isotope:288Mc"]
+	if isotope.NodeType != "isotope" || isotope.Status != "accepted" || isotope.SourcePath != "data/research.seed.json" || isotope.IncomingEdges != 0 || isotope.OutgoingEdges != 5 || isotope.Orphan {
+		t.Fatalf("isotope:288Mc provenance UI row mismatch: %+v", isotope)
+	}
+	blocked := byID["blocked_source:royer2008alphaAnalytic"]
+	if blocked.NodeType != "blocked_source" || blocked.Status != "blocked" || blocked.SourcePath != "citations/papers/royer2008alpha-analytic.md" || blocked.DOIOrURL != "10.1103/PhysRevC.77.037602" || blocked.OutgoingEdges != 2 || blocked.Orphan {
+		t.Fatalf("blocked source provenance UI row mismatch: %+v", blocked)
+	}
+}
+
 func TestDefaultModelExposesAlphaSystematicsRecords(t *testing.T) {
 	model := DefaultModel()
 

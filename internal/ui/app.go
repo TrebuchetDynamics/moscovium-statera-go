@@ -36,6 +36,7 @@ type AppModel struct {
 	AlphaSystematics  []AlphaSystematicsRecord
 	Workbook          []WorkbookUIRecord
 	ProvenanceSummary string
+	ProvenanceNodes   []ProvenanceNodeUIRecord
 }
 
 type ViewSpec struct {
@@ -73,6 +74,17 @@ type WorkbookUIRecord struct {
 	DOICount      int
 	SourcePath    string
 	EvidenceClass string
+}
+
+type ProvenanceNodeUIRecord struct {
+	NodeID        string
+	NodeType      string
+	Status        string
+	SourcePath    string
+	DOIOrURL      string
+	IncomingEdges int
+	OutgoingEdges int
+	Orphan        bool
 }
 
 type ClaimExample struct {
@@ -205,6 +217,7 @@ func DefaultModel() AppModel {
 		AlphaSystematics:  alphaSystematics,
 		Workbook:          workbook,
 		ProvenanceSummary: defaultProvenanceSummary(),
+		ProvenanceNodes:   defaultProvenanceNodeUIRecords(),
 	}
 }
 
@@ -492,6 +505,46 @@ func defaultProvenanceSummary() string {
 		return graph.TextSummary()
 	}
 	return ""
+}
+
+func ProvenanceNodeUIRecordsFromResearch(rows []research.ProvenanceNodeTableRow) []ProvenanceNodeUIRecord {
+	uiRows := make([]ProvenanceNodeUIRecord, 0, len(rows))
+	for _, row := range rows {
+		uiRows = append(uiRows, ProvenanceNodeUIRecord{
+			NodeID:        row.NodeID,
+			NodeType:      string(row.NodeType),
+			Status:        row.Status,
+			SourcePath:    row.SourcePath,
+			DOIOrURL:      row.DOIOrURL,
+			IncomingEdges: row.IncomingEdges,
+			OutgoingEdges: row.OutgoingEdges,
+			Orphan:        row.Orphan,
+		})
+	}
+	return uiRows
+}
+
+func defaultProvenanceNodeUIRecords() []ProvenanceNodeUIRecord {
+	for _, seedPath := range []string{"data/research.seed.json", "../../data/research.seed.json"} {
+		raw, err := os.ReadFile(seedPath)
+		if err != nil {
+			continue
+		}
+		var seed research.ResearchSeed
+		if err := json.Unmarshal(raw, &seed); err != nil {
+			continue
+		}
+		workbook, err := research.WorkbookFromSeed(seed, "data/research.seed.json")
+		if err != nil {
+			continue
+		}
+		graph, err := research.ProvenanceGraphFromWorkbook(workbook, defaultBlockedSources())
+		if err != nil {
+			continue
+		}
+		return ProvenanceNodeUIRecordsFromResearch(graph.NodeTableRows())
+	}
+	return nil
 }
 
 func defaultBlockedSources() []research.BlockedSource {

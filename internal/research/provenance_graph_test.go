@@ -134,3 +134,54 @@ func TestProvenanceGraphReportsOrphans(t *testing.T) {
 		t.Fatalf("orphan ID = %q, want doi:10.0000/orphan", orphans[0].ID)
 	}
 }
+
+func TestProvenanceGraphNodeTableRowsExposeDeterministicAuditFields(t *testing.T) {
+	graph, err := ProvenanceGraphFromWorkbook(validWorkbookRecords(t), []BlockedSource{
+		{Key: "royer2008alphaAnalytic", Title: "Royer 2008", DOI: "10.1103/PhysRevC.77.037602", SourcePath: "citations/papers/royer2008alpha-analytic.md", Reason: "APS article/PDF content unavailable; coefficients must not be changed from metadata alone"},
+	})
+	if err != nil {
+		t.Fatalf("ProvenanceGraphFromWorkbook returned error: %v", err)
+	}
+	graph.AddNode(GraphNode{ID: "doi:10.0000/orphan", Type: NodeDOI, Label: "10.0000/orphan", DOI: "10.0000/orphan"})
+
+	rows := graph.NodeTableRows()
+	if got, want := len(rows), graph.NodeCount(); got != want {
+		t.Fatalf("row count = %d, want node count %d", got, want)
+	}
+	for i := 1; i < len(rows); i++ {
+		if rows[i-1].NodeID > rows[i].NodeID {
+			t.Fatalf("rows not sorted by NodeID at %d: %q > %q", i, rows[i-1].NodeID, rows[i].NodeID)
+		}
+	}
+
+	byID := map[string]ProvenanceNodeTableRow{}
+	for _, row := range rows {
+		byID[row.NodeID] = row
+	}
+
+	isotope := byID["isotope:288Mc"]
+	if isotope.NodeType != NodeIsotope || isotope.Status != "accepted" || isotope.SourcePath != "data/research.seed.json" {
+		t.Fatalf("isotope:288Mc row missing identity/status/source fields: %+v", isotope)
+	}
+	if isotope.OutgoingEdges != 5 || isotope.IncomingEdges != 0 || isotope.Orphan {
+		t.Fatalf("isotope:288Mc edge/orphan fields = incoming %d outgoing %d orphan %v, want 0 5 false", isotope.IncomingEdges, isotope.OutgoingEdges, isotope.Orphan)
+	}
+
+	doi := byID["doi:10.1103/PhysRevC.77.037602"]
+	if doi.NodeType != NodeDOI || doi.DOIOrURL != "10.1103/PhysRevC.77.037602" || doi.IncomingEdges != 1 || doi.OutgoingEdges != 0 || doi.Orphan {
+		t.Fatalf("doi row fields not preserved: %+v", doi)
+	}
+
+	blocked := byID["blocked_source:royer2008alphaAnalytic"]
+	if blocked.NodeType != NodeBlockedSource || blocked.Status != "blocked" || blocked.SourcePath != "citations/papers/royer2008alpha-analytic.md" || blocked.DOIOrURL != "10.1103/PhysRevC.77.037602" {
+		t.Fatalf("blocked-source row fields not preserved: %+v", blocked)
+	}
+	if blocked.OutgoingEdges != 2 || blocked.IncomingEdges != 0 || blocked.Orphan {
+		t.Fatalf("blocked-source edge/orphan fields = incoming %d outgoing %d orphan %v, want 0 2 false", blocked.IncomingEdges, blocked.OutgoingEdges, blocked.Orphan)
+	}
+
+	orphan := byID["doi:10.0000/orphan"]
+	if !orphan.Orphan || orphan.IncomingEdges != 0 || orphan.OutgoingEdges != 0 {
+		t.Fatalf("orphan row fields = incoming %d outgoing %d orphan %v, want 0 0 true", orphan.IncomingEdges, orphan.OutgoingEdges, orphan.Orphan)
+	}
+}

@@ -54,6 +54,17 @@ type BlockedSource struct {
 	Reason     string
 }
 
+type ProvenanceNodeTableRow struct {
+	NodeID        string
+	NodeType      GraphNodeType
+	Status        string
+	SourcePath    string
+	DOIOrURL      string
+	IncomingEdges int
+	OutgoingEdges int
+	Orphan        bool
+}
+
 func ProvenanceGraphFromWorkbook(records []WorkbookRecord, blockedSources []BlockedSource) (ProvenanceGraph, error) {
 	if err := ValidateWorkbookRecords(records); err != nil {
 		return ProvenanceGraph{}, err
@@ -177,4 +188,42 @@ func (graph ProvenanceGraph) OrphanNodes() []GraphNode {
 	}
 	sort.Slice(orphans, func(i, j int) bool { return orphans[i].ID < orphans[j].ID })
 	return orphans
+}
+
+func (graph ProvenanceGraph) NodeTableRows() []ProvenanceNodeTableRow {
+	incoming := map[string]int{}
+	outgoing := map[string]int{}
+	connected := map[string]bool{}
+	for _, edge := range graph.Edges {
+		outgoing[edge.From]++
+		incoming[edge.To]++
+		connected[edge.From] = true
+		connected[edge.To] = true
+	}
+
+	ids := make([]string, 0, len(graph.Nodes))
+	for id := range graph.Nodes {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	rows := make([]ProvenanceNodeTableRow, 0, len(ids))
+	for _, id := range ids {
+		node := graph.Nodes[id]
+		doiOrURL := strings.TrimSpace(node.DOI)
+		if doiOrURL == "" {
+			doiOrURL = strings.TrimSpace(node.URL)
+		}
+		rows = append(rows, ProvenanceNodeTableRow{
+			NodeID:        id,
+			NodeType:      node.Type,
+			Status:        strings.TrimSpace(node.Status),
+			SourcePath:    strings.TrimSpace(node.SourcePath),
+			DOIOrURL:      doiOrURL,
+			IncomingEdges: incoming[id],
+			OutgoingEdges: outgoing[id],
+			Orphan:        !connected[id],
+		})
+	}
+	return rows
 }
