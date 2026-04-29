@@ -114,6 +114,30 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			want:   "288Mc half_life_seconds must be positive",
 		},
 		{
+			name: "half-life interval lower bound missing upper bound",
+			mutate: func(seed *ResearchSeed) {
+				seed.Records[0].HalfLifeLowerSeconds = 0.10
+				seed.Records[0].HalfLifeUpperSeconds = 0
+			},
+			want: "288Mc half-life interval must include both lower and upper bounds when either is present",
+		},
+		{
+			name: "half-life interval lower bound must be positive",
+			mutate: func(seed *ResearchSeed) {
+				seed.Records[0].HalfLifeLowerSeconds = -0.01
+				seed.Records[0].HalfLifeUpperSeconds = 0.20
+			},
+			want: "288Mc half_life_lower_seconds and half_life_upper_seconds must be positive when present",
+		},
+		{
+			name: "half-life interval must bracket nominal half-life",
+			mutate: func(seed *ResearchSeed) {
+				seed.Records[0].HalfLifeLowerSeconds = 0.18
+				seed.Records[0].HalfLifeUpperSeconds = 0.20
+			},
+			want: "288Mc half-life interval [0.18, 0.20] s must bracket nominal half_life_seconds 0.17 s",
+		},
+		{
 			name:   "non-positive Q alpha",
 			mutate: func(seed *ResearchSeed) { seed.Records[0].QAlphaMeV = 0 },
 			want:   "288Mc q_alpha_mev must be positive",

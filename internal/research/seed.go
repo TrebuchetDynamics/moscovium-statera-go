@@ -85,6 +85,9 @@ func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 		if record.HalfLifeSeconds <= 0 {
 			return fmt.Errorf("%s half_life_seconds must be positive", record.ID)
 		}
+		if err := validateHalfLifeInterval(record); err != nil {
+			return err
+		}
 		if record.QAlphaMeV <= 0 {
 			return fmt.Errorf("%s q_alpha_mev must be positive", record.ID)
 		}
@@ -145,6 +148,24 @@ func (seed ResearchSeed) Catalog(sourcePath string) (physics.Catalog, error) {
 		}
 	}
 	return catalog, nil
+}
+
+func validateHalfLifeInterval(record ResearchSeedRecord) error {
+	lower := record.HalfLifeLowerSeconds
+	upper := record.HalfLifeUpperSeconds
+	if lower == 0 && upper == 0 {
+		return nil
+	}
+	if lower == 0 || upper == 0 {
+		return fmt.Errorf("%s half-life interval must include both lower and upper bounds when either is present", record.ID)
+	}
+	if lower <= 0 || upper <= 0 {
+		return fmt.Errorf("%s half_life_lower_seconds and half_life_upper_seconds must be positive when present", record.ID)
+	}
+	if lower >= record.HalfLifeSeconds || upper <= record.HalfLifeSeconds {
+		return fmt.Errorf("%s half-life interval [%.2f, %.2f] s must bracket nominal half_life_seconds %.2f s", record.ID, lower, upper, record.HalfLifeSeconds)
+	}
+	return nil
 }
 
 func validateAlphaEnergy(record ResearchSeedRecord) error {
