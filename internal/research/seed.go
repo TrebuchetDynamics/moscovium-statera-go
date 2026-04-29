@@ -47,8 +47,15 @@ func (seed ResearchSeed) Clone() ResearchSeed {
 
 func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 	for _, record := range seed.Records {
+		expectedID := fmt.Sprintf("%d%s", record.A, record.Symbol)
+		if record.ID != expectedID {
+			return fmt.Errorf("%s ID mismatch, want %s from A=%d and symbol=%s", record.ID, expectedID, record.A, record.Symbol)
+		}
 		if record.N != record.A-record.Z {
 			return fmt.Errorf("%s has N=%d, want A-Z=%d", record.ID, record.N, record.A-record.Z)
+		}
+		if strings.TrimSpace(record.EvidenceLevel) == "" {
+			return fmt.Errorf("%s missing evidence_level", record.ID)
 		}
 		if len(record.CitationURLs) == 0 {
 			return fmt.Errorf("%s missing citation_urls", record.ID)

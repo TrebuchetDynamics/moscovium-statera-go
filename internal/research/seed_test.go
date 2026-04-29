@@ -69,6 +69,16 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			want:   "288Mc missing DOI trail",
 		},
 		{
+			name:   "missing evidence level",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].EvidenceLevel = "" },
+			want:   "288Mc missing evidence_level",
+		},
+		{
+			name:   "ID does not match A and symbol",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].ID = "289Mc" },
+			want:   "289Mc ID mismatch, want 288Mc from A=288 and symbol=Mc",
+		},
+		{
 			name:   "malformed DOI",
 			mutate: func(seed *ResearchSeed) { seed.Records[0].DOIs[0] = "PhysRevC.106.L031301" },
 			want:   "288Mc DOI",

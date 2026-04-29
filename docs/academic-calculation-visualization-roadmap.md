@@ -51,6 +51,10 @@ Open audit follow-ups:
 - Cross-check Royer 2008 PDF coefficients against the inline values in `internal/physics/alpha.go` and update if drift is found.
 - Add a model-comparison overlay (Royer vs Wang or VSS) once a second analytic formula is intaken.
 
+Audit blocker log:
+
+- 2026-04-28 23:06:44 CST: Royer 2008 coefficient cross-check remains blocked by source access. Crossref metadata for DOI `10.1103/PhysRevC.77.037602` resolved title, venue, date, DOI, and DOI URL, but both APS abstract and APS PDF header requests returned HTTP `403`; local repository search found no stored Royer PDF/text beyond existing citation records and code comments. Do not update coefficient values from metadata alone; retry with legitimate article/PDF access or a stored source artifact.
+
 ## References To Intake
 
 - `giuliani2019superheavy` - Review framing for superheavy nuclear/atomic/chemistry questions.
