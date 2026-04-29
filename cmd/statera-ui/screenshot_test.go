@@ -15,6 +15,26 @@ import (
 	"github.com/gogpu/ui/widget"
 )
 
+func TestDemoSummaryRowsGroupCardsForScreenshotReadability(t *testing.T) {
+	rows := demoSummaryRows(ui.DefaultModel())
+	if got, want := len(rows), 2; got != want {
+		t.Fatalf("summary row count = %d, want %d", got, want)
+	}
+	for i, row := range rows {
+		if got, want := len(row), 2; got != want {
+			t.Fatalf("summary row %d card count = %d, want %d", i, got, want)
+		}
+		for _, card := range row {
+			if card.Width < 300 {
+				t.Fatalf("summary card %q width = %.0f, want at least 300 px for demo screenshot readability", card.Name, card.Width)
+			}
+			if card.Description == "" {
+				t.Fatalf("summary card %q missing description", card.Name)
+			}
+		}
+	}
+}
+
 func TestSaveScreenshotWritesNonBlankPNG(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "statera.png")
 	model := ui.DefaultModel()

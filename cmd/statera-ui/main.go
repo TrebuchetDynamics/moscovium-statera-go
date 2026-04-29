@@ -178,21 +178,42 @@ func header(model ui.AppModel) widget.Widget {
 	).Gap(6)
 }
 
-func moduleOverview(model ui.AppModel) widget.Widget {
-	return primitives.HBox(
-		moduleSummary("Education", fmt.Sprintf("%d lessons", len(model.EducationLessons)), "Learn evaluated records and validator boundaries."),
-		moduleSummary("Research", fmt.Sprintf("%d records", len(model.ResearchItems)), "Inspect DOI, URL, queue, and provenance status."),
-		moduleSummary("Design", fmt.Sprintf("%d scenarios", len(model.DesignScenarios)), "Test constrained scenarios against Track A."),
-		moduleSummary("Alpha", fmt.Sprintf("%d isotopes", len(model.AlphaSystematics)), "Compare Royer model predictions to evaluated half-lives."),
-	).Gap(10)
+type summaryCardSpec struct {
+	Name        string
+	Metric      string
+	Description string
+	Width       float32
 }
 
-func moduleSummary(name string, metric string, description string) widget.Widget {
+func demoSummaryRows(model ui.AppModel) [][]summaryCardSpec {
+	cards := []summaryCardSpec{
+		{Name: "Education", Metric: fmt.Sprintf("%d lessons", len(model.EducationLessons)), Description: "Learn evaluated records and validator boundaries.", Width: 420},
+		{Name: "Research", Metric: fmt.Sprintf("%d records", len(model.ResearchItems)), Description: "Inspect DOI, URL, queue, and provenance status.", Width: 420},
+		{Name: "Design", Metric: fmt.Sprintf("%d scenarios", len(model.DesignScenarios)), Description: "Test constrained scenarios against Track A.", Width: 420},
+		{Name: "Alpha", Metric: fmt.Sprintf("%d isotopes", len(model.AlphaSystematics)), Description: "Compare Royer model predictions to evaluated half-lives.", Width: 420},
+	}
+	return [][]summaryCardSpec{{cards[0], cards[1]}, {cards[2], cards[3]}}
+}
+
+func moduleOverview(model ui.AppModel) widget.Widget {
+	rows := demoSummaryRows(model)
+	rowWidgets := make([]widget.Widget, 0, len(rows))
+	for _, row := range rows {
+		cards := make([]widget.Widget, 0, len(row))
+		for _, spec := range row {
+			cards = append(cards, moduleSummary(spec))
+		}
+		rowWidgets = append(rowWidgets, primitives.HBox(cards...).Gap(12))
+	}
+	return primitives.Box(rowWidgets...).Gap(10)
+}
+
+func moduleSummary(spec summaryCardSpec) widget.Widget {
 	return primitives.Box(
-		primitives.Text(name).FontSize(13).Bold().Color(widget.Hex(0x183D34)),
-		primitives.Text(metric).FontSize(12).Color(widget.Hex(0x246B45)),
-		primitives.Text(description).FontSize(10).Color(widget.Hex(0x52645C)),
-	).Width(200).Padding(9).Gap(3).Background(widget.Hex(0xFFFFFF)).Rounded(6).BorderStyle(1, widget.Hex(0xD8E1DC))
+		primitives.Text(spec.Name).FontSize(14).Bold().Color(widget.Hex(0x183D34)),
+		primitives.Text(spec.Metric).FontSize(12).Color(widget.Hex(0x246B45)),
+		primitives.Text(spec.Description).FontSize(11).Color(widget.Hex(0x52645C)),
+	).Width(spec.Width).Padding(10).Gap(4).Background(widget.Hex(0xFFFFFF)).Rounded(6).BorderStyle(1, widget.Hex(0xD8E1DC))
 }
 
 func educationSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
