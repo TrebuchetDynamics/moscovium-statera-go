@@ -119,6 +119,31 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			want:   "288Mc q_alpha_uncertainty_mev must be non-negative",
 		},
 		{
+			name:   "negative alpha energy uncertainty",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].AlphaEnergyUncertaintyMeV = -0.01 },
+			want:   "288Mc alpha_energy_uncertainty_mev must be non-negative",
+		},
+		{
+			name:   "non-positive alpha energy",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].AlphaEnergyMeV = -10.65 },
+			want:   "288Mc alpha_energy_mev must be positive when present",
+		},
+		{
+			name:   "alpha energy range must have two bounds",
+			mutate: func(seed *ResearchSeed) { seed.Records[1].AlphaEnergyRangeMeV = []float64{9.78} },
+			want:   "290Mc alpha_energy_range_mev must contain exactly lower and upper bounds",
+		},
+		{
+			name:   "alpha energy range must be ascending",
+			mutate: func(seed *ResearchSeed) { seed.Records[1].AlphaEnergyRangeMeV = []float64{10.31, 9.78} },
+			want:   "290Mc alpha_energy_range_mev lower bound 10.31 MeV must be less than upper bound 9.78 MeV",
+		},
+		{
+			name:   "alpha energy range values must be positive",
+			mutate: func(seed *ResearchSeed) { seed.Records[1].AlphaEnergyRangeMeV = []float64{0, 10.31} },
+			want:   "290Mc alpha_energy_range_mev values must be positive",
+		},
+		{
 			name:   "unsupported decay mode",
 			mutate: func(seed *ResearchSeed) { seed.Records[0].DecayMode = "" },
 			want:   "288Mc decay_mode must be alpha",

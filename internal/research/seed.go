@@ -84,6 +84,9 @@ func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 		if record.QAlphaUncertaintyMeV < 0 {
 			return fmt.Errorf("%s q_alpha_uncertainty_mev must be non-negative", record.ID)
 		}
+		if err := validateAlphaEnergy(record); err != nil {
+			return err
+		}
 		if strings.TrimSpace(record.DecayMode) != "alpha" {
 			return fmt.Errorf("%s decay_mode must be alpha", record.ID)
 		}
@@ -135,6 +138,30 @@ func (seed ResearchSeed) Catalog(sourcePath string) (physics.Catalog, error) {
 		}
 	}
 	return catalog, nil
+}
+
+func validateAlphaEnergy(record ResearchSeedRecord) error {
+	if record.AlphaEnergyUncertaintyMeV < 0 {
+		return fmt.Errorf("%s alpha_energy_uncertainty_mev must be non-negative", record.ID)
+	}
+	if record.AlphaEnergyMeV < 0 {
+		return fmt.Errorf("%s alpha_energy_mev must be positive when present", record.ID)
+	}
+	if len(record.AlphaEnergyRangeMeV) == 0 {
+		return nil
+	}
+	if len(record.AlphaEnergyRangeMeV) != 2 {
+		return fmt.Errorf("%s alpha_energy_range_mev must contain exactly lower and upper bounds", record.ID)
+	}
+	lower := record.AlphaEnergyRangeMeV[0]
+	upper := record.AlphaEnergyRangeMeV[1]
+	if lower <= 0 || upper <= 0 {
+		return fmt.Errorf("%s alpha_energy_range_mev values must be positive", record.ID)
+	}
+	if lower >= upper {
+		return fmt.Errorf("%s alpha_energy_range_mev lower bound %.2f MeV must be less than upper bound %.2f MeV", record.ID, lower, upper)
+	}
+	return nil
 }
 
 func validateAlphaDaughter(record ResearchSeedRecord) error {
