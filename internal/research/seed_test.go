@@ -104,6 +104,11 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			want:   "288Mc has Z=113, want 115 for symbol Mc",
 		},
 		{
+			name:   "element name does not match nuclide symbol",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].Element = "Nihonium" },
+			want:   "288Mc element name \"Nihonium\" does not match symbol Mc, want Moscovium",
+		},
+		{
 			name:   "non-positive half-life",
 			mutate: func(seed *ResearchSeed) { seed.Records[0].HalfLifeSeconds = 0 },
 			want:   "288Mc half_life_seconds must be positive",

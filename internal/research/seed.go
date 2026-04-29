@@ -72,6 +72,13 @@ func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 		if record.Z != nuclide.Z {
 			return fmt.Errorf("%s has Z=%d, want %d for symbol %s", record.ID, record.Z, nuclide.Z, record.Symbol)
 		}
+		expectedElement, ok := physics.ElementNameForSymbol(record.Symbol)
+		if !ok {
+			return fmt.Errorf("%s has unknown element symbol %s", record.ID, record.Symbol)
+		}
+		if strings.TrimSpace(record.Element) != expectedElement {
+			return fmt.Errorf("%s element name %q does not match symbol %s, want %s", record.ID, record.Element, record.Symbol, expectedElement)
+		}
 		if record.N != record.A-record.Z {
 			return fmt.Errorf("%s has N=%d, want A-Z=%d", record.ID, record.N, record.A-record.Z)
 		}

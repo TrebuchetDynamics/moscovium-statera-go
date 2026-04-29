@@ -80,6 +80,24 @@ func TestAtomicNumberForSymbolCoversCurrentAlphaChainSymbols(t *testing.T) {
 	}
 }
 
+func TestElementNameForSymbolCoversCurrentSeedSymbols(t *testing.T) {
+	cases := map[string]string{
+		"Mc": "Moscovium",
+		"Nh": "Nihonium",
+		"He": "Helium",
+	}
+
+	for symbol, wantName := range cases {
+		gotName, ok := ElementNameForSymbol(symbol)
+		if !ok {
+			t.Fatalf("ElementNameForSymbol(%q) not found", symbol)
+		}
+		if gotName != wantName {
+			t.Fatalf("ElementNameForSymbol(%q) = %q, want %q", symbol, gotName, wantName)
+		}
+	}
+}
+
 func TestSymbolForAtomicNumberCoversCurrentAlphaChainSymbols(t *testing.T) {
 	cases := map[int]string{
 		115: "Mc",
