@@ -3,24 +3,12 @@ package research
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 )
 
 func TestWorkbookFromSeedPreservesProvenance(t *testing.T) {
-	raw, err := os.ReadFile("../../data/research.seed.json")
-	if err != nil {
-		t.Fatalf("read seed: %v", err)
-	}
-
-	var seed ResearchSeed
-	if err := json.Unmarshal(raw, &seed); err != nil {
-		t.Fatalf("unmarshal seed: %v", err)
-	}
-
-	workbook, err := WorkbookFromSeed(seed, "data/research.seed.json")
-	if err != nil {
-		t.Fatalf("WorkbookFromSeed returned error: %v", err)
-	}
+	workbook := validWorkbookRecords(t)
 	if len(workbook) != 2 {
 		t.Fatalf("workbook record count = %d, want 2", len(workbook))
 	}
@@ -87,4 +75,90 @@ func TestWorkbookFromSeedPreservesProvenance(t *testing.T) {
 	if mc290.Z != 115 || mc290.A != 290 || mc290.N != 175 {
 		t.Fatalf("290Mc identity = Z=%d A=%d N=%d, want 115 290 175", mc290.Z, mc290.A, mc290.N)
 	}
+}
+
+func TestValidateWorkbookRejectsProvenanceLoss(t *testing.T) {
+	valid := validWorkbookRecords(t)
+	if err := ValidateWorkbookRecords(valid); err != nil {
+		t.Fatalf("valid workbook rejected: %v", err)
+	}
+
+	cases := []struct {
+		name   string
+		mutate func([]WorkbookRecord)
+		want   string
+	}{
+		{
+			name:   "missing citation URLs rejects",
+			mutate: func(records []WorkbookRecord) { records[0].CitationURLs = nil },
+			want:   "288Mc missing citation URLs",
+		},
+		{
+			name:   "missing DOI rejects",
+			mutate: func(records []WorkbookRecord) { records[0].DOIs = nil },
+			want:   "288Mc missing DOI trail",
+		},
+		{
+			name:   "inconsistent neutron count rejects",
+			mutate: func(records []WorkbookRecord) { records[0].N = records[0].A - records[0].Z + 1 },
+			want:   "288Mc has N=174, want A-Z=173",
+		},
+		{
+			name:   "blank evidence level rejects",
+			mutate: func(records []WorkbookRecord) { records[0].EvidenceLevel = " \t" },
+			want:   "288Mc evidence level must not be blank",
+		},
+		{
+			name:   "blank source path rejects",
+			mutate: func(records []WorkbookRecord) { records[0].SourcePath = " \n" },
+			want:   "288Mc source path must not be blank",
+		},
+		{
+			name:   "malformed daughter ID rejects when present",
+			mutate: func(records []WorkbookRecord) { records[0].Daughter = "284" },
+			want:   "must include an element symbol",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			candidate := cloneWorkbookRecords(valid)
+			tc.mutate(candidate)
+			err := ValidateWorkbookRecords(candidate)
+			if err == nil {
+				t.Fatal("ValidateWorkbookRecords accepted invalid workbook")
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %q, want substring %q", err.Error(), tc.want)
+			}
+		})
+	}
+}
+
+func validWorkbookRecords(t *testing.T) []WorkbookRecord {
+	t.Helper()
+	raw, err := os.ReadFile("../../data/research.seed.json")
+	if err != nil {
+		t.Fatalf("read seed: %v", err)
+	}
+
+	var seed ResearchSeed
+	if err := json.Unmarshal(raw, &seed); err != nil {
+		t.Fatalf("unmarshal seed: %v", err)
+	}
+
+	workbook, err := WorkbookFromSeed(seed, "data/research.seed.json")
+	if err != nil {
+		t.Fatalf("WorkbookFromSeed returned error: %v", err)
+	}
+	return workbook
+}
+
+func cloneWorkbookRecords(records []WorkbookRecord) []WorkbookRecord {
+	clone := append([]WorkbookRecord(nil), records...)
+	for i := range records {
+		clone[i].CitationURLs = append([]string(nil), records[i].CitationURLs...)
+		clone[i].DOIs = append([]string(nil), records[i].DOIs...)
+	}
+	return clone
 }
