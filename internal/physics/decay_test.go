@@ -53,6 +53,17 @@ func TestIsotopeRequiresCitation(t *testing.T) {
 	}
 }
 
+func TestIsotopeRejectsAtomicNumberSymbolMismatch(t *testing.T) {
+	isotope := Isotope{Symbol: "Mc", Z: 113, A: 288, CitationLink: "seed"}
+	err := isotope.Validate()
+	if err == nil {
+		t.Fatal("Validate returned nil error for atomic-number/symbol mismatch")
+	}
+	if !strings.Contains(err.Error(), "288Mc has Z=113, want 115 for symbol Mc") {
+		t.Fatalf("error = %q, want atomic-number/symbol mismatch", err)
+	}
+}
+
 func TestDecayChainRejectsCatalogKeyMismatch(t *testing.T) {
 	catalog := Catalog{
 		"288Mc": {Symbol: "Mc", Z: 115, A: 290, CitationLink: "seed"},

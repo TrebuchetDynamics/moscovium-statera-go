@@ -3,13 +3,9 @@ package research
 import (
 	"fmt"
 	"strings"
-)
 
-var atomicNumberBySymbol = map[string]int{
-	"Nh": 113,
-	"Fl": 114,
-	"Mc": 115,
-}
+	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/physics"
+)
 
 type ResearchSeed struct {
 	Schema  string               `json:"schema"`
@@ -104,24 +100,8 @@ func validateAlphaDaughter(record ResearchSeedRecord) error {
 		return fmt.Errorf("%s missing alpha daughter", record.ID)
 	}
 
-	var daughterA int
-	var daughterSymbol string
-	if _, err := fmt.Sscanf(daughter, "%d%s", &daughterA, &daughterSymbol); err != nil || daughterA == 0 || daughterSymbol == "" {
-		return fmt.Errorf("%s alpha daughter %q must be a nuclide ID like 284Nh", record.ID, record.Daughter)
-	}
-
-	expectedA := record.A - 4
-	if daughterA != expectedA {
-		return fmt.Errorf("%s alpha daughter %s has A=%d, want %d", record.ID, daughter, daughterA, expectedA)
-	}
-
-	daughterZ, ok := atomicNumberBySymbol[daughterSymbol]
-	if !ok {
-		return fmt.Errorf("%s alpha daughter %s has unknown element symbol %s", record.ID, daughter, daughterSymbol)
-	}
-	expectedZ := record.Z - 2
-	if daughterZ != expectedZ {
-		return fmt.Errorf("%s alpha daughter %s has Z=%d, want %d", record.ID, daughter, daughterZ, expectedZ)
+	if err := physics.ValidateAlphaDaughterID(record.ID, daughter); err != nil {
+		return err
 	}
 	return nil
 }

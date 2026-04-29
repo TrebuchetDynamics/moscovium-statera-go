@@ -30,6 +30,13 @@ func (i Isotope) Validate() error {
 	if i.Z <= 0 {
 		return fmt.Errorf("%s has invalid Z=%d", i.ID(), i.Z)
 	}
+	expectedZ, ok := AtomicNumberForSymbol(i.Symbol)
+	if !ok {
+		return fmt.Errorf("%s has unknown element symbol %s", i.ID(), i.Symbol)
+	}
+	if i.Z != expectedZ {
+		return fmt.Errorf("%s has Z=%d, want %d for symbol %s", i.ID(), i.Z, expectedZ, i.Symbol)
+	}
 	if i.A < i.Z {
 		return fmt.Errorf("%s has mass number below atomic number", i.ID())
 	}
