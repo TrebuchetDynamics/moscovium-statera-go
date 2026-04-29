@@ -53,6 +53,17 @@ func TestIsotopeRequiresCitation(t *testing.T) {
 	}
 }
 
+func TestIsotopeRejectsBlankCitation(t *testing.T) {
+	isotope := Isotope{Symbol: "Mc", Z: 115, A: 288, CitationLink: " \t\n"}
+	err := isotope.Validate()
+	if err == nil {
+		t.Fatal("Validate returned nil error for blank citation")
+	}
+	if !strings.Contains(err.Error(), "288Mc missing citation link") {
+		t.Fatalf("error = %q, want missing citation link", err)
+	}
+}
+
 func TestIsotopeRejectsAtomicNumberSymbolMismatch(t *testing.T) {
 	isotope := Isotope{Symbol: "Mc", Z: 113, A: 288, CitationLink: "seed"}
 	err := isotope.Validate()

@@ -40,7 +40,7 @@ func (i Isotope) Validate() error {
 	if i.A < i.Z {
 		return fmt.Errorf("%s has mass number below atomic number", i.ID())
 	}
-	if i.CitationLink == "" {
+	if strings.TrimSpace(i.CitationLink) == "" {
 		return fmt.Errorf("%s missing citation link", i.ID())
 	}
 	return nil
