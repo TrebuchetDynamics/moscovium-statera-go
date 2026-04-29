@@ -140,6 +140,15 @@ func AtomicNumberForSymbol(symbol string) (int, bool) {
 	return z, ok
 }
 
+func SymbolForAtomicNumber(z int) (string, bool) {
+	for symbol, atomicNumber := range atomicNumberBySymbol {
+		if atomicNumber == z {
+			return symbol, true
+		}
+	}
+	return "", false
+}
+
 func ParseNuclideID(id string) (NuclideID, error) {
 	trimmed := strings.TrimSpace(id)
 	if trimmed == "" {
@@ -196,7 +205,12 @@ func ValidateAlphaDaughterID(parentID, daughterID string) error {
 	}
 	expectedZ := parent.Z - 2
 	if daughter.Z != expectedZ {
-		return fmt.Errorf("%s alpha daughter %s has Z=%d, want %d", parent.ID, daughter.ID, daughter.Z, expectedZ)
+		expectedSymbol, ok := SymbolForAtomicNumber(expectedZ)
+		if !ok {
+			return fmt.Errorf("%s alpha daughter %s has Z=%d, want %d", parent.ID, daughter.ID, daughter.Z, expectedZ)
+		}
+		expectedID := fmt.Sprintf("%d%s", expectedA, expectedSymbol)
+		return fmt.Errorf("%s alpha daughter %s has Z=%d, want %d for expected alpha daughter %s", parent.ID, daughter.ID, daughter.Z, expectedZ, expectedID)
 	}
 	return nil
 }

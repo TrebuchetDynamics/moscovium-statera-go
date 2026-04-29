@@ -80,6 +80,28 @@ func TestAtomicNumberForSymbolCoversCurrentAlphaChainSymbols(t *testing.T) {
 	}
 }
 
+func TestSymbolForAtomicNumberCoversCurrentAlphaChainSymbols(t *testing.T) {
+	cases := map[int]string{
+		115: "Mc",
+		113: "Nh",
+		111: "Rg",
+		109: "Mt",
+		107: "Bh",
+		105: "Db",
+		103: "Lr",
+	}
+
+	for z, wantSymbol := range cases {
+		gotSymbol, ok := SymbolForAtomicNumber(z)
+		if !ok {
+			t.Fatalf("SymbolForAtomicNumber(%d) not found", z)
+		}
+		if gotSymbol != wantSymbol {
+			t.Fatalf("SymbolForAtomicNumber(%d) = %q, want %q", z, gotSymbol, wantSymbol)
+		}
+	}
+}
+
 func TestAlphaDaughterIDComputesExpectedMassAndAtomicNumber(t *testing.T) {
 	cases := []struct {
 		parent   string
@@ -106,7 +128,7 @@ func TestAlphaDaughterIDRejectsNonAlphaTransitions(t *testing.T) {
 		want     string
 	}{
 		{parent: "288Mc", daughter: "285Nh", want: "A=285, want 284"},
-		{parent: "288Mc", daughter: "284Fl", want: "Z=114, want 113"},
+		{parent: "288Mc", daughter: "284Fl", want: "Z=114, want 113 for expected alpha daughter 284Nh"},
 		{parent: "288Mc", daughter: "284Xx", want: "unknown element symbol"},
 	}
 
