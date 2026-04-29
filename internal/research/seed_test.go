@@ -108,6 +108,21 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			mutate: func(seed *ResearchSeed) { seed.Records[0].DecayMode = "" },
 			want:   "288Mc decay_mode must be alpha",
 		},
+		{
+			name:   "missing alpha daughter",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].Daughter = "" },
+			want:   "288Mc missing alpha daughter",
+		},
+		{
+			name:   "daughter mass not alpha decay",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].Daughter = "285Nh" },
+			want:   "288Mc alpha daughter 285Nh has A=285, want 284",
+		},
+		{
+			name:   "daughter symbol not alpha decay",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].Daughter = "284Fl" },
+			want:   "288Mc alpha daughter 284Fl has Z=114, want 113",
+		},
 	}
 
 	for _, tc := range cases {
