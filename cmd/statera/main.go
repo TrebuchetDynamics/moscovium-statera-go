@@ -17,7 +17,17 @@ func main() {
 	options := provenanceNodeTableOptions{}
 	flag.StringVar(&options.NodeType, "provenance-node-type", "", "optional provenance node table filter by node_type")
 	flag.StringVar(&options.Status, "provenance-status", "", "optional provenance node table filter by status")
+	flag.StringVar(&options.Format, "provenance-format", "tsv", "provenance node table output format: tsv or json")
 	flag.Parse()
+
+	if strings.TrimSpace(options.Format) == "json" {
+		report, err := provenanceNodeTableReportWithOptions("data/research.seed.json", options)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Print(report)
+		return
+	}
 
 	catalog := physics.Catalog{
 		"288Mc": {Symbol: "Mc", Z: 115, A: 288, HalfLife: 170 * time.Millisecond, QAlphaMeV: 10.75, Daughter: "284Nh", CitationLink: "https://www.nndc.bnl.gov/ensnds/288/Mc/adopted.pdf"},
@@ -52,6 +62,7 @@ func main() {
 type provenanceNodeTableOptions struct {
 	NodeType string
 	Status   string
+	Format   string
 }
 
 func provenanceNodeTableReport(seedPath string) (string, error) {
@@ -77,6 +88,9 @@ func provenanceNodeTableReportWithOptions(seedPath string, options provenanceNod
 	}
 
 	rows := filterProvenanceNodeTableRows(graph.NodeTableRows(), options)
+	if strings.TrimSpace(options.Format) == "json" {
+		return provenanceNodeTableJSONReport(rows, options)
+	}
 	var builder strings.Builder
 	fmt.Fprintf(&builder, "provenance_node_table rows=%d columns=8", len(rows))
 	if filterSummary := provenanceNodeTableFilterSummary(options); filterSummary != "" {
@@ -118,6 +132,57 @@ func filterProvenanceNodeTableRows(rows []research.ProvenanceNodeTableRow, optio
 		filtered = append(filtered, row)
 	}
 	return filtered
+}
+
+func provenanceNodeTableJSONReport(rows []research.ProvenanceNodeTableRow, options provenanceNodeTableOptions) (string, error) {
+	type provenanceNodeTableJSONFilters struct {
+		NodeType string `json:"node_type,omitempty"`
+		Status   string `json:"status,omitempty"`
+	}
+	type provenanceNodeTableJSONRecord struct {
+		NodeID        string `json:"node_id"`
+		NodeType      string `json:"node_type"`
+		Status        string `json:"status"`
+		SourcePath    string `json:"source_path"`
+		DOIOrURL      string `json:"doi_or_url"`
+		IncomingEdges int    `json:"incoming_edges"`
+		OutgoingEdges int    `json:"outgoing_edges"`
+		Orphan        bool   `json:"orphan"`
+	}
+	type provenanceNodeTableJSONPayload struct {
+		ReportType string                          `json:"report_type"`
+		Rows       int                             `json:"rows"`
+		Columns    int                             `json:"columns"`
+		Filters    provenanceNodeTableJSONFilters  `json:"filters"`
+		Records    []provenanceNodeTableJSONRecord `json:"records"`
+	}
+	payload := provenanceNodeTableJSONPayload{
+		ReportType: "provenance_node_table",
+		Rows:       len(rows),
+		Columns:    8,
+		Filters: provenanceNodeTableJSONFilters{
+			NodeType: strings.TrimSpace(options.NodeType),
+			Status:   strings.TrimSpace(options.Status),
+		},
+		Records: make([]provenanceNodeTableJSONRecord, 0, len(rows)),
+	}
+	for _, row := range rows {
+		payload.Records = append(payload.Records, provenanceNodeTableJSONRecord{
+			NodeID:        row.NodeID,
+			NodeType:      string(row.NodeType),
+			Status:        row.Status,
+			SourcePath:    row.SourcePath,
+			DOIOrURL:      row.DOIOrURL,
+			IncomingEdges: row.IncomingEdges,
+			OutgoingEdges: row.OutgoingEdges,
+			Orphan:        row.Orphan,
+		})
+	}
+	raw, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(raw) + "\n", nil
 }
 
 func provenanceNodeTableFilterSummary(options provenanceNodeTableOptions) string {
