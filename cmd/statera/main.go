@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/physics"
+	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/research"
 )
 
 func main() {
@@ -31,4 +35,68 @@ func main() {
 		fmt.Print(isotope.ID())
 	}
 	fmt.Println()
+
+	report, err := provenanceNodeTableReport("data/research.seed.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Print(report)
+}
+
+func provenanceNodeTableReport(seedPath string) (string, error) {
+	raw, err := os.ReadFile(seedPath)
+	if err != nil {
+		return "", err
+	}
+	var seed research.ResearchSeed
+	if err := json.Unmarshal(raw, &seed); err != nil {
+		return "", err
+	}
+	workbook, err := research.WorkbookFromSeed(seed, "data/research.seed.json")
+	if err != nil {
+		return "", err
+	}
+	graph, err := research.ProvenanceGraphFromWorkbook(workbook, blockedSources())
+	if err != nil {
+		return "", err
+	}
+
+	rows := graph.NodeTableRows()
+	var builder strings.Builder
+	fmt.Fprintf(&builder, "provenance_node_table rows=%d columns=8\n", len(rows))
+	builder.WriteString("node_id\tnode_type\tstatus\tsource_path\tdoi_or_url\tincoming_edges\toutgoing_edges\torphan\n")
+	for _, row := range rows {
+		fmt.Fprintf(
+			&builder,
+			"%s\t%s\t%s\t%s\t%s\t%d\t%d\t%t\n",
+			row.NodeID,
+			row.NodeType,
+			row.Status,
+			row.SourcePath,
+			row.DOIOrURL,
+			row.IncomingEdges,
+			row.OutgoingEdges,
+			row.Orphan,
+		)
+	}
+	return builder.String(), nil
+}
+
+func blockedSources() []research.BlockedSource {
+	return []research.BlockedSource{
+		{
+			Key:        "royer2008alphaAnalytic",
+			Title:      "Recent alpha decay half-lives and analytic expression predictions including superheavy nuclei",
+			DOI:        "10.1103/PhysRevC.77.037602",
+			SourcePath: "citations/papers/royer2008alpha-analytic.md",
+			Reason:     "APS article/PDF content unavailable in prior source triage; coefficients must not be changed from metadata alone",
+		},
+		{
+			Key:        "wang2015alphaSystematics",
+			Title:      "Systematic study of alpha-decay energies and half-lives of superheavy nuclei",
+			DOI:        "10.1103/PhysRevC.92.064301",
+			SourcePath: "citations/papers/wang2015alpha-systematics.md",
+			Reason:     "APS article/PDF content unavailable in prior source triage; second-model formulas must not be added from metadata alone",
+		},
+	}
 }
