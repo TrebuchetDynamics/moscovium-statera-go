@@ -89,6 +89,11 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 			want:   "288Mc has N=174, want A-Z=173",
 		},
 		{
+			name:   "atomic number does not match nuclide symbol",
+			mutate: func(seed *ResearchSeed) { seed.Records[0].Z = 113 },
+			want:   "288Mc has Z=113, want 115 for symbol Mc",
+		},
+		{
 			name:   "non-positive half-life",
 			mutate: func(seed *ResearchSeed) { seed.Records[0].HalfLifeSeconds = 0 },
 			want:   "288Mc half_life_seconds must be positive",
@@ -137,6 +142,65 @@ func TestValidateResearchSeedRequiresCompleteProvenance(t *testing.T) {
 				t.Fatalf("error = %q, want substring %q", err.Error(), tc.want)
 			}
 		})
+	}
+}
+
+func TestResearchSeedCatalogConvertsVerifiedRecordsWithProvenance(t *testing.T) {
+	raw, err := os.ReadFile("../../data/research.seed.json")
+	if err != nil {
+		t.Fatalf("read seed: %v", err)
+	}
+	seed := readResearchSeed(t, raw)
+
+	catalog, err := seed.Catalog("data/research.seed.json")
+	if err != nil {
+		t.Fatalf("Catalog returned error: %v", err)
+	}
+
+	if len(catalog) != 2 {
+		t.Fatalf("catalog record count = %d, want 2", len(catalog))
+	}
+
+	mc288, ok := catalog["288Mc"]
+	if !ok {
+		t.Fatal("catalog missing 288Mc")
+	}
+	if mc288.Symbol != "Mc" || mc288.Z != 115 || mc288.A != 288 {
+		t.Fatalf("288Mc identity = symbol %s Z %d A %d, want Mc 115 288", mc288.Symbol, mc288.Z, mc288.A)
+	}
+	if mc288.HalfLife.String() != "170ms" {
+		t.Fatalf("288Mc half-life = %s, want 170ms", mc288.HalfLife)
+	}
+	if mc288.QAlphaMeV != 10.75 {
+		t.Fatalf("288Mc Q alpha = %.2f MeV, want 10.75 MeV", mc288.QAlphaMeV)
+	}
+	if mc288.Daughter != "284Nh" {
+		t.Fatalf("288Mc daughter = %q, want 284Nh", mc288.Daughter)
+	}
+	if mc288.CitationLink != "https://www.nndc.bnl.gov/ensnds/288/Mc/adopted.pdf" {
+		t.Fatalf("288Mc citation link = %q, want first source URL", mc288.CitationLink)
+	}
+
+	mc290 := catalog["290Mc"]
+	if mc290.HalfLife.String() != "650ms" {
+		t.Fatalf("290Mc half-life = %s, want 650ms", mc290.HalfLife)
+	}
+}
+
+func TestResearchSeedCatalogRejectsInvalidSeedBeforeConversion(t *testing.T) {
+	raw, err := os.ReadFile("../../data/research.seed.json")
+	if err != nil {
+		t.Fatalf("read seed: %v", err)
+	}
+	seed := readResearchSeed(t, raw)
+	seed.Records[0].Z = 113
+
+	_, err = seed.Catalog("data/research.seed.json")
+	if err == nil {
+		t.Fatal("Catalog accepted invalid seed")
+	}
+	if !strings.Contains(err.Error(), "288Mc has Z=113, want 115 for symbol Mc") {
+		t.Fatalf("error = %q, want atomic-number/symbol mismatch", err)
 	}
 }
 

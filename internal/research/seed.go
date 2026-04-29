@@ -3,6 +3,7 @@ package research
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/TrebuchetDynamics/moscovium-statera-go/internal/physics"
 )
@@ -49,9 +50,22 @@ func (seed ResearchSeed) Clone() ResearchSeed {
 
 func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 	for _, record := range seed.Records {
+		nuclide, err := physics.ParseNuclideID(record.ID)
+		if err != nil {
+			return err
+		}
 		expectedID := fmt.Sprintf("%d%s", record.A, record.Symbol)
 		if record.ID != expectedID {
 			return fmt.Errorf("%s ID mismatch, want %s from A=%d and symbol=%s", record.ID, expectedID, record.A, record.Symbol)
+		}
+		if nuclide.Symbol != record.Symbol {
+			return fmt.Errorf("%s symbol mismatch, want %s from ID", record.ID, nuclide.Symbol)
+		}
+		if nuclide.A != record.A {
+			return fmt.Errorf("%s A mismatch, want %d from ID", record.ID, nuclide.A)
+		}
+		if record.Z != nuclide.Z {
+			return fmt.Errorf("%s has Z=%d, want %d for symbol %s", record.ID, record.Z, nuclide.Z, record.Symbol)
 		}
 		if record.N != record.A-record.Z {
 			return fmt.Errorf("%s has N=%d, want A-Z=%d", record.ID, record.N, record.A-record.Z)
@@ -92,6 +106,30 @@ func ValidateResearchSeedProvenance(seed ResearchSeed) error {
 		}
 	}
 	return nil
+}
+
+func (seed ResearchSeed) Catalog(sourcePath string) (physics.Catalog, error) {
+	if err := ValidateResearchSeedProvenance(seed); err != nil {
+		return nil, err
+	}
+
+	catalog := make(physics.Catalog, len(seed.Records))
+	for _, record := range seed.Records {
+		citationLink := strings.TrimSpace(sourcePath)
+		if len(record.CitationURLs) > 0 {
+			citationLink = strings.TrimSpace(record.CitationURLs[0])
+		}
+		catalog[record.ID] = physics.Isotope{
+			Symbol:       record.Symbol,
+			Z:            record.Z,
+			A:            record.A,
+			HalfLife:     time.Duration(record.HalfLifeSeconds * float64(time.Second)),
+			QAlphaMeV:    record.QAlphaMeV,
+			Daughter:     strings.TrimSpace(record.Daughter),
+			CitationLink: citationLink,
+		}
+	}
+	return catalog, nil
 }
 
 func validateAlphaDaughter(record ResearchSeedRecord) error {
