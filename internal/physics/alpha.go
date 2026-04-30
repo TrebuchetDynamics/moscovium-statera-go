@@ -52,6 +52,31 @@ type Prediction struct {
 	EvidenceClass      EvidenceClass
 }
 
+type AlphaResidualRecord struct {
+	IsotopeID         string
+	Z                 int
+	A                 int
+	ParityClass       ParityClass
+	QAlphaMeV         float64
+	EvaluatedHalfLife time.Duration
+	PredictedHalfLife time.Duration
+	LogResidual       float64
+	FactorError       float64
+	ModelName         string
+	ModelReference    string
+	EvidenceClass     EvidenceClass
+	Skipped           bool
+	SkipReason        string
+}
+
+type AlphaResidualReport struct {
+	Records                 []AlphaResidualRecord
+	RecordCount             int
+	SkippedCount            int
+	MeanAbsoluteLogResidual float64
+	MaxAbsoluteLogResidual  float64
+}
+
 // RoyerModel returns the Royer-family analytic alpha-decay half-life model.
 // Coefficients are the parity-class fits from the Royer 2000 / Royer & Zhang 2008
 // analytic-formula family (DOI 10.1103/PhysRevC.77.037602). Output is a
@@ -111,6 +136,78 @@ func (m Model) Predict(z, a int, qAlphaMeV float64) (Prediction, error) {
 		Coefficients:       coef,
 		EvidenceClass:      m.EvidenceClass,
 	}, nil
+}
+
+func AlphaResidualSummary(catalog Catalog, isotopeIDs []string, model Model) (AlphaResidualReport, error) {
+	report := AlphaResidualReport{Records: make([]AlphaResidualRecord, 0, len(isotopeIDs))}
+	var absoluteLogResidualSum float64
+
+	for _, id := range isotopeIDs {
+		record := AlphaResidualRecord{
+			IsotopeID:      id,
+			LogResidual:    math.NaN(),
+			FactorError:    math.NaN(),
+			ModelName:      model.Name,
+			ModelReference: model.Reference,
+			EvidenceClass:  model.EvidenceClass,
+		}
+
+		isotope, ok := catalog[id]
+		if !ok {
+			record.Skipped = true
+			record.SkipReason = "isotope not in catalog"
+			report.SkippedCount++
+			report.Records = append(report.Records, record)
+			continue
+		}
+
+		record.Z = isotope.Z
+		record.A = isotope.A
+		record.QAlphaMeV = isotope.QAlphaMeV
+		record.EvaluatedHalfLife = isotope.HalfLife
+		if isotope.QAlphaMeV <= 0 {
+			record.Skipped = true
+			record.SkipReason = "no positive Q_alpha in catalog"
+			report.SkippedCount++
+			report.Records = append(report.Records, record)
+			continue
+		}
+		if isotope.HalfLife <= 0 {
+			record.Skipped = true
+			record.SkipReason = "no positive evaluated half-life in catalog"
+			report.SkippedCount++
+			report.Records = append(report.Records, record)
+			continue
+		}
+
+		prediction, err := model.Predict(isotope.Z, isotope.A, isotope.QAlphaMeV)
+		if err != nil {
+			return AlphaResidualReport{}, fmt.Errorf("%s residual prediction: %w", id, err)
+		}
+		evaluatedSeconds := isotope.HalfLife.Seconds()
+		logResidual := prediction.LogHalfLifeSeconds - math.Log10(evaluatedSeconds)
+		factorError := math.Pow(10, logResidual)
+		if math.IsNaN(logResidual) || math.IsInf(logResidual, 0) || math.IsNaN(factorError) || math.IsInf(factorError, 0) {
+			return AlphaResidualReport{}, fmt.Errorf("%s residual is not finite", id)
+		}
+
+		record.ParityClass = prediction.ParityClass
+		record.PredictedHalfLife = prediction.HalfLife
+		record.LogResidual = logResidual
+		record.FactorError = factorError
+		report.RecordCount++
+		abs := math.Abs(logResidual)
+		absoluteLogResidualSum += abs
+		if abs > report.MaxAbsoluteLogResidual {
+			report.MaxAbsoluteLogResidual = abs
+		}
+		report.Records = append(report.Records, record)
+	}
+
+	if report.RecordCount > 0 {
+		report.MeanAbsoluteLogResidual = absoluteLogResidualSum / float64(report.RecordCount)
+	}
+	return report, nil
 }
 
 func classifyParity(z, a int) ParityClass {

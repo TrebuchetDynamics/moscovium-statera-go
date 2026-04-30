@@ -4,6 +4,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRoyerModelMetadataIsAuditable(t *testing.T) {
@@ -134,5 +135,71 @@ func TestPredictReturnsPositiveDuration(t *testing.T) {
 	}
 	if math.IsNaN(got.LogHalfLifeSeconds) || math.IsInf(got.LogHalfLifeSeconds, 0) {
 		t.Fatalf("LogHalfLifeSeconds = %v, want finite", got.LogHalfLifeSeconds)
+	}
+}
+
+func TestAlphaResidualSummaryAggregatesEvaluatedRecords(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 288, HalfLife: 170 * time.Millisecond, QAlphaMeV: 10.75, Daughter: "284Nh", CitationLink: "data/research.seed.json"},
+		"290Mc": {Symbol: "Mc", Z: 115, A: 290, HalfLife: 650 * time.Millisecond, QAlphaMeV: 10.45, Daughter: "286Nh", CitationLink: "data/research.seed.json"},
+	}
+
+	summary, err := AlphaResidualSummary(catalog, []string{"288Mc", "290Mc"}, RoyerModel())
+	if err != nil {
+		t.Fatalf("AlphaResidualSummary: %v", err)
+	}
+	if summary.RecordCount != 2 {
+		t.Fatalf("RecordCount = %d, want 2", summary.RecordCount)
+	}
+	if summary.SkippedCount != 0 {
+		t.Fatalf("SkippedCount = %d, want 0", summary.SkippedCount)
+	}
+	if len(summary.Records) != 2 {
+		t.Fatalf("len(Records) = %d, want 2", len(summary.Records))
+	}
+	for _, record := range summary.Records {
+		if record.ModelName != RoyerModel().Name || record.EvidenceClass != EvidenceClassPeerReviewedModel {
+			t.Fatalf("model metadata not preserved in residual record: %+v", record)
+		}
+		if record.LogResidual == 0 || math.IsNaN(record.LogResidual) || math.IsInf(record.LogResidual, 0) {
+			t.Fatalf("LogResidual = %v, want finite non-zero residual", record.LogResidual)
+		}
+		if record.FactorError <= 0 || math.IsNaN(record.FactorError) || math.IsInf(record.FactorError, 0) {
+			t.Fatalf("FactorError = %v, want finite positive factor", record.FactorError)
+		}
+	}
+	if summary.MeanAbsoluteLogResidual <= 0 || summary.MaxAbsoluteLogResidual < summary.MeanAbsoluteLogResidual {
+		t.Fatalf("summary residual magnitudes invalid: mean=%v max=%v", summary.MeanAbsoluteLogResidual, summary.MaxAbsoluteLogResidual)
+	}
+}
+
+func TestAlphaResidualSummarySkipsZeroQRecords(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 288, HalfLife: 170 * time.Millisecond, QAlphaMeV: 10.75, Daughter: "284Nh", CitationLink: "data/research.seed.json"},
+		"290Mc": {Symbol: "Mc", Z: 115, A: 290, HalfLife: 650 * time.Millisecond, QAlphaMeV: 0, Daughter: "286Nh", CitationLink: "data/research.seed.json"},
+	}
+
+	summary, err := AlphaResidualSummary(catalog, []string{"288Mc", "290Mc"}, RoyerModel())
+	if err != nil {
+		t.Fatalf("AlphaResidualSummary: %v", err)
+	}
+	if summary.RecordCount != 1 || summary.SkippedCount != 1 {
+		t.Fatalf("counts = records %d skipped %d, want records 1 skipped 1", summary.RecordCount, summary.SkippedCount)
+	}
+	if !summary.Records[1].Skipped || !strings.Contains(summary.Records[1].SkipReason, "Q_alpha") {
+		t.Fatalf("zero-Q record not skipped with Q_alpha reason: %+v", summary.Records[1])
+	}
+	if !math.IsNaN(summary.Records[1].LogResidual) || !math.IsNaN(summary.Records[1].FactorError) {
+		t.Fatalf("skipped residuals = log %v factor %v, want NaN", summary.Records[1].LogResidual, summary.Records[1].FactorError)
+	}
+}
+
+func TestAlphaResidualSummaryRejectsNaNResiduals(t *testing.T) {
+	catalog := Catalog{
+		"288Mc": {Symbol: "Mc", Z: 115, A: 288, HalfLife: 170 * time.Millisecond, QAlphaMeV: math.NaN(), Daughter: "284Nh", CitationLink: "data/research.seed.json"},
+	}
+
+	if _, err := AlphaResidualSummary(catalog, []string{"288Mc"}, RoyerModel()); err == nil || !strings.Contains(err.Error(), "Q_alpha must be finite") {
+		t.Fatalf("AlphaResidualSummary accepted NaN Q_alpha; err=%v", err)
 	}
 }
