@@ -13,13 +13,18 @@ The project is intentionally narrow. It is not a speculative materials platform,
 
 ## Current Status
 
-This repository is in Phase 1 bootstrap:
+This repository is in Phase 2 (expanded platform):
 
-- core decay traversal exists
-- high-precision unit conversion exists
-- Crossref DOI metadata retrieval exists
-- seed data includes `288Mc` and `290Mc`
-- gogpu/ui application shell exists for education, research, and design modules
+- 5 Moscovium isotopes (287Mc–291Mc) with full ENSDF provenance
+- 15 daughter isotopes (Nh, Rg, Mt, Bh, Db, Lr) across complete decay chains
+- 6 alpha-decay half-life models: Royer, WKB, VSS, UNIV, Denisov, binding energy
+- Spontaneous fission half-life model (Swiatecki)
+- Monte Carlo decay simulation with fixed-seed determinism
+- Liquid-drop binding energy with shell corrections (Bethe-Weizsäcker)
+- Fusion-evaporation excitation function model
+- ENSDF text parser and batch intake pipeline
+- gogpu/ui dashboard: N-Z chart, binding energy, decay chain viewer, model comparison, alpha systematics, provenance node table
+- All isotope records carry DOI trails and ENSDF citation URLs
 
 ## Quick Start
 
@@ -47,12 +52,15 @@ Short version:
 ## Layout
 
 ```text
-cmd/statera/             CLI decay-chain smoke path
-cmd/statera-ui/          gogpu/ui application shell
-data/                    seed research records
-docs/                    research charter and literature roadmap
-internal/physics/        decay traversal and unit helpers
-internal/research/       citation and DOI metadata utilities
+cmd/statera/                  CLI decay-chain smoke path + JSON reports
+cmd/statera-ui/               gogpu/ui dashboard application
+data/                         seed research records (20 isotopes)
+docs/                         research charter, literature roadmap, specs
+internal/physics/             decay, alpha models (Royer, WKB, VSS, UNIV, Denisov),
+                              binding energy, SF fission, excitation, claims, nuclide
+internal/research/            ENSDF ingestion, provenance graph, workbook,
+                              CrossRef DOI, source triage, seed validation
+internal/ui/                  AppModel, view specs, data loading for all dashboard sections
 ```
 
 ## License
