@@ -282,6 +282,10 @@ func buildRoot(model ui.AppModel, theme *material3.Theme) widget.Widget {
 		designSection(model, theme),
 		alphaSystematicsSection(model, theme),
 		contextSection(model, theme),
+		nzChartSection(model, theme),
+		bindingEnergySection(model, theme),
+		decayChainSection(model, theme),
+		modelComparisonSection(model, theme),
 	).Padding(20).Gap(14)
 
 	return primitives.HBox(
@@ -513,6 +517,74 @@ func contextSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
 	}
 	children = append(children, boundary("Context records are not-for-simulation and do not validate unsupported linkages."))
 	return section("Context", children, theme)
+}
+
+func nzChartSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
+	children := []widget.Widget{
+		primitives.Text("N-Z Chart — Superheavy Region").FontSize(14).Bold().Color(widget.Hex(0x24483E)),
+		boundary(fmt.Sprintf("%d isotopes. Each card shows Z, N, A, half-life and decay mode.", len(model.NzChart))),
+	}
+	for _, pt := range model.NzChart {
+		color := widget.Hex(0x246B45)
+		if pt.DecayMode == "SF" {
+			color = widget.Hex(0x8A3D00)
+		}
+		children = append(children, card(
+			primitives.Text(pt.ID).FontSize(12).Bold().Color(color),
+			primitives.Text(fmt.Sprintf("Z=%d  N=%d  A=%d  T1/2=%s  mode=%s", pt.Z, pt.N, pt.A, pt.HalfLife, pt.DecayMode)).FontSize(10).Color(widget.Hex(0x44504B)),
+		))
+	}
+	return section("N-Z Chart", children, theme)
+}
+
+func bindingEnergySection(model ui.AppModel, theme *material3.Theme) widget.Widget {
+	children := []widget.Widget{
+		primitives.Text("Binding Energy per Nucleon").FontSize(14).Bold().Color(widget.Hex(0x24483E)),
+		boundary("Liquid-drop (Bethe-Weizsäcker) binding energies with shell correction estimates. Model output, not evaluated data."),
+	}
+	for _, be := range model.BindingEnergies {
+		children = append(children, card(
+			primitives.Text(fmt.Sprintf("%s  B/A = %.2f MeV", be.ID, be.BindingPerN)).FontSize(12).Bold(),
+			primitives.Text(fmt.Sprintf("Z=%d  A=%d  shell_correction=%+.2f MeV   %s", be.Z, be.A, be.ShellCorrection, be.ModelName)).FontSize(10).Color(widget.Hex(0x44504B)),
+		))
+	}
+	return section("Binding Energy", children, theme)
+}
+
+func decayChainSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
+	children := []widget.Widget{
+		primitives.Text("Decay Chain Viewer").FontSize(14).Bold().Color(widget.Hex(0x24483E)),
+		boundary("Alpha decay chains for all 5 Mc isotopes. Chains terminate at catalog boundary."),
+	}
+	for _, dc := range model.DecayChains {
+		chainStr := strings.Join(dc.ChainIDs, " -> ")
+		children = append(children, card(
+			primitives.Text(fmt.Sprintf("Start: %s", dc.StartID)).FontSize(12).Bold(),
+			primitives.Text(chainStr).FontSize(10).Color(widget.Hex(0x44504B)),
+		))
+	}
+	return section("Decay Chains", children, theme)
+}
+
+func modelComparisonSection(model ui.AppModel, theme *material3.Theme) widget.Widget {
+	children := []widget.Widget{
+		primitives.Text("Alpha Half-Life Model Comparison").FontSize(14).Bold().Color(widget.Hex(0x24483E)),
+		boundary("Royer, VSS, UNIV, Denisov, and WKB predictions compared to evaluated half-lives. All model outputs are peer-reviewed-model estimates."),
+	}
+	for _, rec := range model.ModelComparison {
+		evalStr := fmt.Sprintf("evaluated: %.2fs", rec.EvaluatedHalfLife.Seconds())
+		modelLines := []string{
+			evalStr,
+			fmt.Sprintf("Royer log10(T)=%+.2f  VSS=%+.2f  UNIV=%+.2f", rec.RoyerLogT, rec.VSSLogT, rec.UNIVLogT),
+			fmt.Sprintf("Denisov=%+.2f  WKB=%+.2f", rec.DenisovLogT, rec.WKBLogT),
+		}
+		cardItems := []widget.Widget{primitives.Text(rec.IsotopeID).FontSize(12).Bold()}
+		for _, line := range modelLines {
+			cardItems = append(cardItems, primitives.Text(line).FontSize(10).Color(widget.Hex(0x44504B)))
+		}
+		children = append(children, card(cardItems...))
+	}
+	return section("Model Comparison", children, theme)
 }
 
 func section(title string, children []widget.Widget, theme *material3.Theme) widget.Widget {

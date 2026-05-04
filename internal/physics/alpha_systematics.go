@@ -75,3 +75,17 @@ func errInvalidQAlpha(q float64) error { return &alphaError{msg: fmt.Sprintf("Q_
 type alphaError struct{ msg string }
 
 func (e *alphaError) Error() string { return e.msg }
+
+// Public wrappers for consuming packages.
+func PredictVSSHalfLife(z, a int, qAlphaMeV float64) (float64, error) {
+	return predictVSSHalfLife(z, a, qAlphaMeV)
+}
+func PredictUNIVHalfLife(z, a int, qAlphaMeV float64) (float64, error) {
+	return predictUNIVHalfLife(z, a, qAlphaMeV)
+}
+func PredictDenisovHalfLife(z, a int, qAlphaMeV float64) (float64, error) {
+	return predictDenisovHalfLife(z, a, qAlphaMeV)
+}
+func PredictWKBHalfLife(z, a int, qAlphaMeV float64) (float64, error) {
+	return predictWKBHalfLife(z, a, qAlphaMeV)
+}

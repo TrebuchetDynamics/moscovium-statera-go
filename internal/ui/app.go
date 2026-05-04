@@ -37,6 +37,10 @@ type AppModel struct {
 	Workbook          []WorkbookUIRecord
 	ProvenanceSummary string
 	ProvenanceNodes   []ProvenanceNodeUIRecord
+	NzChart           []NzChartRecord
+	BindingEnergies   []BindingEnergyRecord
+	DecayChains       []DecayChainRecord
+	ModelComparison   []ModelComparisonRecord
 }
 
 type ViewSpec struct {
@@ -158,6 +162,41 @@ type AlphaSystematicsRecord struct {
 	SkipReason     string
 }
 
+type NzChartRecord struct {
+	ID            string
+	Z             int
+	A             int
+	N             int
+	HalfLife      time.Duration
+	DecayMode     string
+	EvidenceClass string
+}
+
+type BindingEnergyRecord struct {
+	ID              string
+	Z               int
+	A               int
+	BindingPerN     float64
+	ShellCorrection float64
+	ModelName       string
+}
+
+type DecayChainRecord struct {
+	StartID  string
+	ChainIDs []string
+}
+
+type ModelComparisonRecord struct {
+	IsotopeID      string
+	EvaluatedLogT  float64
+	RoyerLogT      float64
+	VSSLogT        float64
+	UNIVLogT       float64
+	DenisovLogT    float64
+	WKBLogT        float64
+	EvaluatedHalfLife time.Duration
+}
+
 func DefaultSpec() Spec {
 	return Spec{
 		Title:  "Moscovium Statera Go",
@@ -218,6 +257,10 @@ func DefaultModel() AppModel {
 		Workbook:          workbook,
 		ProvenanceSummary: defaultProvenanceSummary(),
 		ProvenanceNodes:   defaultProvenanceNodeUIRecords(),
+		NzChart:           loadNzChartData(catalog),
+		BindingEnergies:   loadBindingEnergyData(catalog),
+		DecayChains:       loadDecayChainData(catalog),
+		ModelComparison:   loadModelComparisonData(catalog),
 	}
 }
 
@@ -657,6 +700,88 @@ func defaultAlphaSystematicsRecords(catalog physics.Catalog) []AlphaSystematicsR
 			}
 		}
 		records = append(records, base)
+	}
+	return records
+}
+
+func loadNzChartData(catalog physics.Catalog) []NzChartRecord {
+	records := make([]NzChartRecord, 0, len(catalog))
+	for _, iso := range catalog {
+		records = append(records, NzChartRecord{
+			ID:            iso.ID(),
+			Z:             iso.Z,
+			A:             iso.A,
+			N:             iso.A - iso.Z,
+			HalfLife:      iso.HalfLife,
+			DecayMode:     "alpha",
+			EvidenceClass: "evaluated",
+		})
+	}
+	return records
+}
+
+func loadBindingEnergyData(catalog physics.Catalog) []BindingEnergyRecord {
+	records := make([]BindingEnergyRecord, 0, len(catalog))
+	for _, iso := range catalog {
+		be, err := physics.BetheWeizsackerBindingEnergy(iso.Z, iso.A)
+		if err != nil {
+			continue
+		}
+		shell, _ := physics.ShellCorrectionEstimate(iso.Z, iso.A)
+		records = append(records, BindingEnergyRecord{
+			ID:              iso.ID(),
+			Z:               iso.Z,
+			A:               iso.A,
+			BindingPerN:     be / float64(iso.A),
+			ShellCorrection: shell,
+			ModelName:       "Bethe-Weizsäcker (liquid-drop)",
+		})
+	}
+	return records
+}
+
+func loadDecayChainData(catalog physics.Catalog) []DecayChainRecord {
+	return []DecayChainRecord{
+		{StartID: "288Mc", ChainIDs: decayChainIDs("288Mc", catalog)},
+		{StartID: "290Mc", ChainIDs: decayChainIDs("290Mc", catalog)},
+		{StartID: "287Mc", ChainIDs: decayChainIDs("287Mc", catalog)},
+		{StartID: "289Mc", ChainIDs: decayChainIDs("289Mc", catalog)},
+		{StartID: "291Mc", ChainIDs: decayChainIDs("291Mc", catalog)},
+	}
+}
+
+func loadModelComparisonData(catalog physics.Catalog) []ModelComparisonRecord {
+	records := make([]ModelComparisonRecord, 0, len(catalog))
+	royerModel := physics.RoyerModel()
+
+	for _, iso := range catalog {
+		if iso.QAlphaMeV <= 0 || iso.HalfLife <= 0 {
+			continue
+		}
+		evaluatedLogT := math.Log10(iso.HalfLife.Seconds())
+
+		rec := ModelComparisonRecord{
+			IsotopeID:         iso.ID(),
+			EvaluatedLogT:     evaluatedLogT,
+			EvaluatedHalfLife: iso.HalfLife,
+		}
+
+		if pred, err := royerModel.Predict(iso.Z, iso.A, iso.QAlphaMeV); err == nil {
+			rec.RoyerLogT = pred.LogHalfLifeSeconds
+		}
+		if logT, err := physics.PredictVSSHalfLife(iso.Z, iso.A, iso.QAlphaMeV); err == nil {
+			rec.VSSLogT = logT
+		}
+		if logT, err := physics.PredictUNIVHalfLife(iso.Z, iso.A, iso.QAlphaMeV); err == nil {
+			rec.UNIVLogT = logT
+		}
+		if logT, err := physics.PredictDenisovHalfLife(iso.Z, iso.A, iso.QAlphaMeV); err == nil {
+			rec.DenisovLogT = logT
+		}
+		if logT, err := physics.PredictWKBHalfLife(iso.Z, iso.A, iso.QAlphaMeV); err == nil {
+			rec.WKBLogT = logT
+		}
+		records = append(records, rec)
 	}
 	return records
 }
