@@ -9,8 +9,8 @@ import (
 
 func TestWorkbookFromSeedPreservesProvenance(t *testing.T) {
 	workbook := validWorkbookRecords(t)
-	if len(workbook) != 2 {
-		t.Fatalf("workbook record count = %d, want 2", len(workbook))
+	if len(workbook) < 2 {
+		t.Fatalf("workbook record count = %d, want at least 2", len(workbook))
 	}
 
 	byID := map[string]WorkbookRecord{}

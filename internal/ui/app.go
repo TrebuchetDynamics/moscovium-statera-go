@@ -222,16 +222,30 @@ func DefaultModel() AppModel {
 }
 
 func defaultCatalog() physics.Catalog {
-	return physics.Catalog{
-		"288Mc": {Symbol: "Mc", Z: 115, A: 288, HalfLife: 170 * time.Millisecond, QAlphaMeV: 10.75, Daughter: "284Nh", CitationLink: "data/research.seed.json"},
-		"290Mc": {Symbol: "Mc", Z: 115, A: 290, HalfLife: 650 * time.Millisecond, QAlphaMeV: 10.45, Daughter: "286Nh", CitationLink: "data/research.seed.json"},
-		"284Nh": {Symbol: "Nh", Z: 113, A: 284, Daughter: "280Rg", CitationLink: "data/research.seed.json"},
-		"280Rg": {Symbol: "Rg", Z: 111, A: 280, Daughter: "276Mt", CitationLink: "data/research.seed.json"},
-		"276Mt": {Symbol: "Mt", Z: 109, A: 276, Daughter: "272Bh", CitationLink: "data/research.seed.json"},
-		"272Bh": {Symbol: "Bh", Z: 107, A: 272, Daughter: "268Db", CitationLink: "data/research.seed.json"},
-		"268Db": {Symbol: "Db", Z: 105, A: 268, Daughter: "264Lr", CitationLink: "data/research.seed.json"},
-		"264Lr": {Symbol: "Lr", Z: 103, A: 264, CitationLink: "data/research.seed.json"},
+	catalog := physics.Catalog{}
+	for _, seedPath := range []string{"data/research.seed.json", "../../data/research.seed.json"} {
+		raw, err := os.ReadFile(seedPath)
+		if err != nil {
+			continue
+		}
+		var seed research.ResearchSeed
+		if err := json.Unmarshal(raw, &seed); err != nil {
+			continue
+		}
+		for _, rec := range seed.Records {
+			catalog[rec.ID] = physics.Isotope{
+				Symbol:       rec.Symbol,
+				Z:            rec.Z,
+				A:            rec.A,
+				HalfLife:     time.Duration(rec.HalfLifeSeconds * float64(time.Second)),
+				QAlphaMeV:    rec.QAlphaMeV,
+				Daughter:     rec.Daughter,
+				CitationLink: seedPath,
+			}
+		}
+		break
 	}
+	return catalog
 }
 
 func viewSpecs(modules []ModuleSpec) []ViewSpec {
@@ -243,10 +257,7 @@ func viewSpecs(modules []ModuleSpec) []ViewSpec {
 }
 
 func decayChainIDs(start string, catalog physics.Catalog) []string {
-	chain, err := physics.DecayChain(start, catalog)
-	if err != nil {
-		return []string{err.Error()}
-	}
+	chain := physics.DecayChainGraceful(start, catalog)
 	ids := make([]string, 0, len(chain))
 	for _, isotope := range chain {
 		ids = append(ids, isotope.ID())

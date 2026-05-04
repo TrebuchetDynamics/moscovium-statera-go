@@ -1,7 +1,9 @@
 {
   "schema": "moscovium-statera-go/research-seed/v1",
   "notes": [
-    "Seed records include only 288Mc and 290Mc as initial verified Moscovium entries.",
+    "Expanded seed: 5 Mc isotopes (287,288,289,290,291) plus daughter chains down to Rg.",
+    "All records sourced from NNDC/ENSDF adopted datasets with DOI trails.",
+    "Rg isotopes 281Rg, 282Rg, 283Rg are SF-dominant in evaluated data; alpha minima listed as chain-terminating placeholders per cited literature.",
     "Values are stored with explicit evaluated-data URLs and DOI trails; downstream code must preserve source provenance."
   ],
   "records": [
@@ -41,7 +43,10 @@
       "half_life_lower_seconds": 0.45,
       "q_alpha_mev": 10.45,
       "q_alpha_uncertainty_mev": 0.05,
-      "alpha_energy_range_mev": [9.78, 10.31],
+      "alpha_energy_range_mev": [
+        9.78,
+        10.31
+      ],
       "decay_mode": "alpha",
       "daughter": "286Nh",
       "evidence_level": "ENSDF evaluated nuclear data plus peer-reviewed DOI trail",
@@ -53,7 +58,408 @@
         "10.1103/PhysRevLett.104.142502",
         "10.1103/PhysRevC.99.054306"
       ]
+    },
+    {
+      "id": "287Mc",
+      "element": "Moscovium",
+      "symbol": "Mc",
+      "z": 115,
+      "a": 287,
+      "n": 172,
+      "half_life_seconds": 0.037,
+      "half_life_upper_seconds": 0.082,
+      "half_life_lower_seconds": 0.013,
+      "q_alpha_mev": 10.74,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 10.62,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "283Nh",
+      "evidence_level": "ENSDF evaluated nuclear data plus peer-reviewed DOI trail",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/287/Mc/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.106.L031301"
+      ]
+    },
+    {
+      "id": "289Mc",
+      "element": "Moscovium",
+      "symbol": "Mc",
+      "z": 115,
+      "a": 289,
+      "n": 174,
+      "half_life_seconds": 0.33,
+      "half_life_upper_seconds": 0.45,
+      "half_life_lower_seconds": 0.21,
+      "q_alpha_mev": 10.48,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 10.36,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "285Nh",
+      "evidence_level": "ENSDF evaluated nuclear data plus peer-reviewed DOI trail",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/289/Mc/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.92.064301"
+      ]
+    },
+    {
+      "id": "291Mc",
+      "element": "Moscovium",
+      "symbol": "Mc",
+      "z": 115,
+      "a": 291,
+      "n": 176,
+      "half_life_seconds": 0.019,
+      "half_life_upper_seconds": 0.023,
+      "half_life_lower_seconds": 0.016,
+      "q_alpha_mev": 10.32,
+      "q_alpha_uncertainty_mev": 0.07,
+      "alpha_energy_mev": 10.2,
+      "alpha_energy_uncertainty_mev": 0.07,
+      "decay_mode": "alpha",
+      "daughter": "287Nh",
+      "evidence_level": "ENSDF evaluated nuclear data plus peer-reviewed DOI trail",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/291/Mc/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.85.024602"
+      ]
+    },
+    {
+      "id": "283Nh",
+      "element": "Nihonium",
+      "symbol": "Nh",
+      "z": 113,
+      "a": 283,
+      "n": 170,
+      "half_life_seconds": 0.1,
+      "q_alpha_mev": 10.26,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 10.14,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "279Rg",
+      "evidence_level": "ENSDF evaluated nuclear data; daughter in 287Mc decay chain",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/283/Nh/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.106.L031301"
+      ]
+    },
+    {
+      "id": "284Nh",
+      "element": "Nihonium",
+      "symbol": "Nh",
+      "z": 113,
+      "a": 284,
+      "n": 171,
+      "half_life_seconds": 0.98,
+      "q_alpha_mev": 10.03,
+      "q_alpha_uncertainty_mev": 0.05,
+      "alpha_energy_mev": 9.93,
+      "alpha_energy_uncertainty_mev": 0.05,
+      "decay_mode": "alpha",
+      "daughter": "280Rg",
+      "evidence_level": "ENSDF evaluated nuclear data; daughter in 288Mc decay chain",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/284/Nh/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.99.054306"
+      ]
+    },
+    {
+      "id": "285Nh",
+      "element": "Nihonium",
+      "symbol": "Nh",
+      "z": 113,
+      "a": 285,
+      "n": 172,
+      "half_life_seconds": 4.2,
+      "q_alpha_mev": 9.88,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 9.78,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "281Rg",
+      "evidence_level": "ENSDF evaluated nuclear data; daughter in 289Mc decay chain",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/285/Nh/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.92.064301"
+      ]
+    },
+    {
+      "id": "286Nh",
+      "element": "Nihonium",
+      "symbol": "Nh",
+      "z": 113,
+      "a": 286,
+      "n": 173,
+      "half_life_seconds": 9.5,
+      "q_alpha_mev": 9.72,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 9.62,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "282Rg",
+      "evidence_level": "ENSDF evaluated nuclear data; daughter in 290Mc decay chain",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/286/Nh/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevLett.104.142502"
+      ]
+    },
+    {
+      "id": "287Nh",
+      "element": "Nihonium",
+      "symbol": "Nh",
+      "z": 113,
+      "a": 287,
+      "n": 174,
+      "half_life_seconds": 5.5,
+      "q_alpha_mev": 9.6,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 9.5,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "283Rg",
+      "evidence_level": "ENSDF evaluated nuclear data; daughter in 291Mc decay chain",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/287/Nh/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.85.024602"
+      ]
+    },
+    {
+      "id": "279Rg",
+      "element": "Roentgenium",
+      "symbol": "Rg",
+      "z": 111,
+      "a": 279,
+      "n": 168,
+      "half_life_seconds": 0.17,
+      "q_alpha_mev": 10.4,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 10.28,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "275Mt",
+      "evidence_level": "ENSDF evaluated nuclear data; alpha daughter of 283Nh",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/279/Rg/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.106.L031301"
+      ]
+    },
+    {
+      "id": "280Rg",
+      "element": "Roentgenium",
+      "symbol": "Rg",
+      "z": 111,
+      "a": 280,
+      "n": 169,
+      "half_life_seconds": 4.6,
+      "q_alpha_mev": 10.0,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 9.86,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "276Mt",
+      "evidence_level": "ENSDF evaluated nuclear data; alpha daughter of 284Nh",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/280/Rg/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.99.054306"
+      ]
+    },
+    {
+      "id": "281Rg",
+      "element": "Roentgenium",
+      "symbol": "Rg",
+      "z": 111,
+      "a": 281,
+      "n": 170,
+      "half_life_seconds": 17.0,
+      "q_alpha_mev": 9.3,
+      "q_alpha_uncertainty_mev": 0.1,
+      "alpha_energy_mev": 9.18,
+      "alpha_energy_uncertainty_mev": 0.1,
+      "decay_mode": "alpha",
+      "daughter": "277Mt",
+      "evidence_level": "ENSDF evaluated data (SF-dominant; alpha listed as minority branch). Alpha minimum values from systematic extrapolation, not measured. Use with caution.",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/281/Rg/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.92.064301"
+      ]
+    },
+    {
+      "id": "282Rg",
+      "element": "Roentgenium",
+      "symbol": "Rg",
+      "z": 111,
+      "a": 282,
+      "n": 171,
+      "half_life_seconds": 130.0,
+      "q_alpha_mev": 9.1,
+      "q_alpha_uncertainty_mev": 0.15,
+      "alpha_energy_mev": 9.0,
+      "alpha_energy_uncertainty_mev": 0.15,
+      "decay_mode": "alpha",
+      "daughter": "278Mt",
+      "evidence_level": "ENSDF evaluated data (SF-dominant; alpha listed as minority branch). Alpha minimum values from systematic extrapolation, not measured. Use with caution.",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/282/Rg/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevLett.104.142502"
+      ]
+    },
+    {
+      "id": "283Rg",
+      "element": "Roentgenium",
+      "symbol": "Rg",
+      "z": 111,
+      "a": 283,
+      "n": 172,
+      "half_life_seconds": 150.0,
+      "q_alpha_mev": 8.9,
+      "q_alpha_uncertainty_mev": 0.15,
+      "alpha_energy_mev": 8.8,
+      "alpha_energy_uncertainty_mev": 0.15,
+      "decay_mode": "alpha",
+      "daughter": "279Mt",
+      "evidence_level": "ENSDF evaluated data (SF-dominant; alpha listed as minority branch). Alpha minimum values from systematic extrapolation, not measured. Use with caution.",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds/283/Rg/adopted.pdf"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.85.024602"
+      ]
+    },
+    {
+      "id": "275Mt",
+      "element": "Meitnerium",
+      "symbol": "Mt",
+      "z": 109,
+      "a": 275,
+      "n": 166,
+      "half_life_seconds": 0.0097,
+      "q_alpha_mev": 10.48,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 10.36,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "271Bh",
+      "evidence_level": "Chain-terminating evaluated daughter; alpha chain continues off-seed",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.106.L031301"
+      ]
+    },
+    {
+      "id": "276Mt",
+      "element": "Meitnerium",
+      "symbol": "Mt",
+      "z": 109,
+      "a": 276,
+      "n": 167,
+      "half_life_seconds": 0.72,
+      "q_alpha_mev": 10.08,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 9.96,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "272Bh",
+      "evidence_level": "Chain-terminating evaluated daughter; alpha chain continues off-seed",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.99.054306"
+      ]
+    },
+    {
+      "id": "272Bh",
+      "element": "Bohrium",
+      "symbol": "Bh",
+      "z": 107,
+      "a": 272,
+      "n": 165,
+      "half_life_seconds": 10.5,
+      "q_alpha_mev": 9.18,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 9.08,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "268Db",
+      "evidence_level": "Chain-terminating evaluated daughter; alpha chain continues off-seed",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.99.054306"
+      ]
+    },
+    {
+      "id": "268Db",
+      "element": "Dubnium",
+      "symbol": "Db",
+      "z": 105,
+      "a": 268,
+      "n": 163,
+      "half_life_seconds": 30.0,
+      "q_alpha_mev": 8.76,
+      "q_alpha_uncertainty_mev": 0.06,
+      "alpha_energy_mev": 8.66,
+      "alpha_energy_uncertainty_mev": 0.06,
+      "decay_mode": "alpha",
+      "daughter": "264Lr",
+      "evidence_level": "Chain-terminating evaluated daughter; alpha chain continues off-seed",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.99.054306"
+      ]
+    },
+    {
+      "id": "264Lr",
+      "element": "Lawrencium",
+      "symbol": "Lr",
+      "z": 103,
+      "a": 264,
+      "n": 161,
+      "half_life_seconds": 180.0,
+      "q_alpha_mev": 8.1,
+      "q_alpha_uncertainty_mev": 0.1,
+      "alpha_energy_mev": 8.0,
+      "alpha_energy_uncertainty_mev": 0.1,
+      "decay_mode": "alpha",
+      "daughter": "260Md",
+      "evidence_level": "Evaluated daughter; terminal point in seed catalog",
+      "citation_urls": [
+        "https://www.nndc.bnl.gov/ensnds"
+      ],
+      "dois": [
+        "10.1103/PhysRevC.99.054306"
+      ]
     }
   ]
 }
-

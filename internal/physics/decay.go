@@ -107,6 +107,41 @@ func DecayChain(start string, catalog Catalog) ([]Isotope, error) {
 	return chain, nil
 }
 
+// DecayChainGraceful traverses the decay chain and stops when a daughter
+// is not found in the catalog, returning the partial chain without an error.
+// Use this for display/UI paths where the catalog boundary is expected.
+func DecayChainGraceful(start string, catalog Catalog) []Isotope {
+	if start == "" {
+		return nil
+	}
+	visited := make(map[string]bool)
+	chain := make([]Isotope, 0, 8)
+	_ = traverseGraceful(start, catalog, visited, &chain)
+	return chain
+}
+
+func traverseGraceful(id string, catalog Catalog, visited map[string]bool, chain *[]Isotope) error {
+	if visited[id] {
+		return nil
+	}
+	isotope, ok := catalog[id]
+	if !ok {
+		return fmt.Errorf("catalog boundary reached at %s", id)
+	}
+	if err := isotope.Validate(); err != nil {
+		return nil
+	}
+	visited[id] = true
+	*chain = append(*chain, isotope)
+	if isotope.Daughter == "" {
+		return nil
+	}
+	if err := ValidateAlphaDaughterID(id, isotope.Daughter); err != nil {
+		return fmt.Errorf("catalog boundary reached at %s: %w", id, err)
+	}
+	return traverseGraceful(isotope.Daughter, catalog, visited, chain)
+}
+
 func DecaySimulationSummary(start string, catalog Catalog, options SimulationOptions) (DecaySimulationReport, error) {
 	if options.Samples <= 0 {
 		return DecaySimulationReport{}, errors.New("simulation sample count must be positive")
