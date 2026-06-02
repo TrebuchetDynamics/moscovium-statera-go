@@ -5,3 +5,10 @@ coverage.out
 
 
 /artifacts/
+
+# Agent/local analysis state
+.pi/
+.refactorignore
+.understand-anything/
+# Local compiled UI binary
+/statera-ui
